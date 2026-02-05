@@ -1,0 +1,406 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// --- ENUMS ---
+
+enum Role {
+  CLIENT
+  CREATOR
+  ADMIN
+}
+
+enum CreatorType {
+  PHOTOGRAPHER
+  VIDEO_CREATOR
+}
+
+enum VerificationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum ServiceType {
+  SINGLE_SESSION
+  MULTI_SESSION
+  PROJECT_BASED
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  DISPUTED
+}
+
+enum PaymentStatus {
+  PENDING
+  DEPOSIT_PAID
+  FULLY_PAID
+  REFUNDED
+}
+
+enum EscrowStatus {
+  HELD
+  RELEASED
+  REFUNDED
+}
+
+enum TransactionType {
+  PAYMENT
+  REFUND
+  COMMISSION
+  PAYOUT
+}
+
+enum TransactionStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  REVERSED
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  VIDEO
+  DOCUMENT
+  LOCATION
+  SYSTEM
+}
+
+enum MessageStatus {
+  SENT
+  DELIVERED
+  READ
+}
+
+enum ReviewerType {
+  CLIENT
+  CREATOR
+}
+
+enum DisputeType {
+  NON_DELIVERY
+  QUALITY_ISSUE
+  PAYMENT_ISSUE
+  CANCELLATION
+  OTHER
+}
+
+enum DisputeStatus {
+  OPEN
+  UNDER_REVIEW
+  AWAITING_RESPONSE
+  RESOLVED
+  ESCALATED
+}
+
+enum NotificationType {
+  BOOKING
+  PAYMENT
+  MESSAGE
+  REVIEW
+  SYSTEM
+  REMINDER
+}
+
+enum SafetyStatus {
+  ACTIVE
+  RESOLVED
+  ESCALATED
+}
+
+// --- MODELS ---
+
+model User {
+  id             String    @id @default(uuid())
+  email          String?   @unique
+  passwordHash   String
+  firstName      String
+  lastName       String
+  profilePicture String?
+  dateOfBirth    DateTime?
+  gender         String?
+  city           String?
+  country        String?
+  coordinates    Json?     // { latitude: number, longitude: number }
+  isVerified     Boolean   @default(false)
+  isActive       Boolean   @default(true)
+  role           Role
+  preferences    Json?     // NotificationPreferences etc.
+  otp            String?
+  otpExpires     DateTime?
+  resetToken     String?   @unique
+  resetTokenExpires DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  lastLoginAt    DateTime?
+
+  // Relations
+  creatorProfile  Creator?
+  bookings        Booking[]      @relation("UserBookings")
+  reviewsGiven    Review[]       @relation("Reviewer")
+  reviewsReceived Review[]       @relation("Reviewee")
+  transactions    Transaction[]
+  chatMessages    Message[]
+  notifications   Notification[]
+  disputesRaised  Dispute[]      @relation("Raiser")
+  disputesAssigned Dispute[]     @relation("AdminAssigned")
+  refreshTokens   RefreshToken[]
+}
+
+model Creator {
+  id                 String             @id @default(uuid())
+  userId             String             @unique
+  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  creatorType        CreatorType
+  businessName       String?
+  bio                String
+  specializations    String[]           // Array of categories or tags
+  verificationStatus VerificationStatus @default(PENDING)
+  documents          Json?              // { nationalId, businessLicense, etc. }
+  isVerified         Boolean            @default(false)
+  verifiedBadge      Boolean            @default(false)
+  portfolioLinks     Json?              // { youtube, vimeo, instagram, website }
+  pricing            Json?              // { hourlyRate, packages, customPricingEnabled }
+  equipment          Json[]             // Array of Equipment objects
+  availability       Json?              // { workingHours, blockedDates, calendarSync }
+  baseCity           String?
+  country            String?
+  coordinates        Json?              // { latitude: number, longitude: number }
+  serviceRadius      Int?               // in km
+  averageRating      Decimal            @default(0) @db.Decimal(3, 2)
+  totalReviews       Int                @default(0)
+  ratingBreakdown    Json?
+  stats              Json?              // { totalBookings, responseTime, etc. }
+  insurance          Json?              // { gearInsuranceEnabled, provider, etc. }
+  commissionRate     Decimal            @default(15.00) @db.Decimal(5, 2)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  approvedAt         DateTime?
+
+  // Relations
+  portfolioMedia PortfolioMedia[]
+  bookings       Booking[]
+  safetyCheckIns SafetyCheckIn[]
+}
+
+model PortfolioMedia {
+  id          String   @id @default(uuid())
+  creatorId   String
+  creator     Creator  @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  type        String   // "IMAGE" or "VIDEO"
+  original    Json
+  compressed  Json
+  thumbnail   Json
+  watermarked Json
+  metadata    Json?
+  isPublic    Boolean  @default(true)
+  orderIndex  Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Category {
+  id          String    @id @default(uuid())
+  name        String
+  slug        String    @unique
+  description String?
+  icon        String?
+  type        String?   // "PHOTOGRAPHY", "VIDEO", or "BOTH"
+  isActive    Boolean   @default(true)
+  orderIndex  Int       @default(0)
+  parentId    String?
+  parent      Category? @relation("SubCategories", fields: [parentId], references: [id])
+  children    Category[] @relation("SubCategories")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Booking {
+  id             String        @id @default(uuid())
+  bookingNumber  String        @unique
+  clientId       String
+  client         User          @relation("UserBookings", fields: [clientId], references: [id])
+  creatorId      String
+  creator        Creator       @relation(fields: [creatorId], references: [id])
+  serviceType    ServiceType
+  category       String?
+  bookingDetails Json
+  pricing        Json
+  paymentStatus  PaymentStatus @default(PENDING)
+  escrowStatus   EscrowStatus?
+  status         BookingStatus @default(PENDING)
+  timeline       Json?
+  delivery       Json?
+  cancellation   Json?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  // Relations
+  sessions       BookingSession[]
+  transactions   Transaction[]
+  chat           Chat?
+  reviews        Review[]
+  dispute        Dispute?
+  safetyCheckIns SafetyCheckIn[]
+}
+
+model BookingSession {
+  id            String   @id @default(uuid())
+  bookingId     String
+  booking       Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  sessionNumber Int
+  scheduledDate DateTime
+  startTime     String   // HH:mm
+  endTime       String   // HH:mm
+  duration      Decimal? @db.Decimal(4, 2)
+  location      Json?
+  status        String   @default("SCHEDULED")
+  checkIn       Json?
+  checkOut      Json?
+  createdAt     DateTime @default(now())
+}
+
+model Transaction {
+  id                String            @id @default(uuid())
+  transactionNumber String            @unique
+  bookingId         String?
+  booking           Booking?          @relation(fields: [bookingId], references: [id])
+  userId            String
+  user              User              @relation(fields: [userId], references: [id])
+  creatorId         String?
+  type              TransactionType
+  amount            Decimal           @db.Decimal(10, 2)
+  currency          String            @default("KES")
+  paymentMethod     String?
+  mobileMoneyInfo   Json?
+  status            TransactionStatus @default(PENDING)
+  escrow            Json?
+  commission        Json?
+  metadata          Json?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  completedAt       DateTime?
+}
+
+model Chat {
+  id            String    @id @default(uuid())
+  bookingId     String    @unique
+  booking       Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  lastMessage   Json?
+  unreadCount   Json?     // { client: number, creator: number }
+  isActive      Boolean   @default(true)
+  metadata      Json?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  messages      Message[]
+}
+
+model Message {
+  id          String        @id @default(uuid())
+  chatId      String
+  chat        Chat          @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  senderId    String
+  sender      User          @relation(fields: [senderId], references: [id])
+  senderType  String        // "CLIENT" or "CREATOR"
+  messageType MessageType
+  content     Json
+  status      MessageStatus @default(SENT)
+  isDeleted   Boolean       @default(false)
+  deletedAt   DateTime?
+  sentAt      DateTime      @default(now())
+  deliveredAt DateTime?
+  readAt      DateTime?
+}
+
+model Review {
+  id           String       @id @default(uuid())
+  bookingId    String
+  booking      Booking      @relation(fields: [bookingId], references: [id])
+  reviewerType ReviewerType
+  reviewerId   String
+  reviewer     User         @relation("Reviewer", fields: [reviewerId], references: [id])
+  revieweeId   String
+  reviewee     User         @relation("Reviewee", fields: [revieweeId], references: [id])
+  rating       Int
+  categories   Json?        // { professionalism, quality, etc. }
+  comment      String?
+  response     Json?
+  isPublic     Boolean      @default(true)
+  isFlagged    Boolean      @default(false)
+  flagReason   String?
+  helpfulCount Int          @default(0)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+}
+
+model Dispute {
+  id            String        @id @default(uuid())
+  disputeNumber String        @unique
+  bookingId     String        @unique
+  booking       Booking       @relation(fields: [bookingId], references: [id])
+  raisedBy      String        // "CLIENT" or "CREATOR"
+  raiserId      String
+  raiser        User          @relation("Raiser", fields: [raiserId], references: [id])
+  type          DisputeType
+  description   String
+  evidence      Json?
+  status        DisputeStatus @default(OPEN)
+  assignedTo    String?
+  admin         User?         @relation("AdminAssigned", fields: [assignedTo], references: [id])
+  timeline      Json?
+  resolution    Json?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      NotificationType
+  title     String
+  message   String
+  data      Json?
+  channels  Json?    // { push, sms, email, inApp }
+  status    Json?
+  isRead    Boolean  @default(false)
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+}
+
+model SafetyCheckIn {
+  id        String       @id @default(uuid())
+  creatorId String
+  creator   Creator      @relation(fields: [creatorId], references: [id])
+  bookingId String
+  booking   Booking      @relation(fields: [bookingId], references: [id])
+  type      String       // "ROUTINE" or "SOS"
+  location  Json
+  contacts  Json?
+  status    SafetyStatus @default(ACTIVE)
+  notes     String?
+  createdAt DateTime     @default(now())
+  resolvedAt DateTime?
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  isRevoked Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
