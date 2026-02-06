@@ -114,6 +114,14 @@ enum NotificationType {
   REMINDER
 }
 
+enum JobStatus {
+  PENDING
+  ACTIVE
+  FILLED
+  COMPLETED
+  CANCELLED
+}
+
 enum SafetyStatus {
   ACTIVE
   RESOLVED
@@ -145,6 +153,7 @@ model User {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
   lastLoginAt    DateTime?
+  fcmToken       String?   // For push notifications
 
   // Relations
   creatorProfile  Creator?
@@ -157,6 +166,7 @@ model User {
   disputesRaised  Dispute[]      @relation("Raiser")
   disputesAssigned Dispute[]     @relation("AdminAssigned")
   refreshTokens   RefreshToken[]
+  jobs            Job[]          @relation("UserJobs")
 }
 
 model Creator {
@@ -199,11 +209,12 @@ model PortfolioMedia {
   id          String   @id @default(uuid())
   creatorId   String
   creator     Creator  @relation(fields: [creatorId], references: [id], onDelete: Cascade)
-  type        String   // "IMAGE" or "VIDEO"
-  original    Json
-  compressed  Json
-  thumbnail   Json
-  watermarked Json
+  type        String   // "IMAGE", "VIDEO", "DOCUMENT", "LINK"
+  url         String?  // Direct link for LINK type or file path
+  original    Json?
+  compressed  Json?
+  thumbnail   Json?
+  watermarked Json?
   metadata    Json?
   isPublic    Boolean  @default(true)
   orderIndex  Int      @default(0)
@@ -223,6 +234,22 @@ model Category {
   parentId    String?
   parent      Category? @relation("SubCategories", fields: [parentId], references: [id])
   children    Category[] @relation("SubCategories")
+  jobs        Job[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Job {
+  id          String    @id @default(uuid())
+  clientId    String
+  client      User      @relation("UserJobs", fields: [clientId], references: [id])
+  categoryId  String?
+  category    Category? @relation(fields: [categoryId], references: [id])
+  title       String
+  description String
+  budget      Decimal?  @db.Decimal(10, 2)
+  location    String?
+  status      JobStatus @default(PENDING)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 }

@@ -1,4 +1,5 @@
 import * as userService from "../../service/user/user.js";
+import { updateFcmToken as updateToken } from "../../utils/notifications.js";
 
 /**
  * Controller to get user profile
@@ -133,6 +134,56 @@ export const changeRole = async (req, res) => {
             success: true,
             data: updatedUser,
             message: `User role updated to ${role}`
+        });
+    } catch (error) {
+        res.status(400).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+
+/**
+ * Controller to get current user profile (me)
+ */
+export const getMe = async (req, res) => {
+    res.status(200).json({
+        success: true,
+        data: req.user
+    });
+};
+
+/**
+ * Controller to update current user profile (me)
+ */
+export const updateMe = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const userData = req.body;
+        const updatedUser = await userService.updateUserProfile(userId, userData);
+        res.status(200).json({
+            success: true,
+            data: updatedUser,
+            message: "Profile updated successfully"
+        });
+    } catch (error) {
+        res.status(400).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+
+/**
+ * Controller to update FCM token
+ */
+export const updateFcmToken = async (req, res) => {
+    try {
+        const { fcmToken } = req.body;
+        await updateToken(req.user.id, fcmToken);
+        res.status(200).json({
+            success: true,
+            message: "FCM token updated successfully"
         });
     } catch (error) {
         res.status(400).json({

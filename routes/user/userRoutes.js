@@ -6,7 +6,10 @@ import {
     deactivate,
     activate,
     removeUser,
-    changeRole
+    changeRole,
+    getMe,
+    updateMe,
+    updateFcmToken
 } from "../../controller/user/userController.js";
 import { protect, restrictTo } from "../../middleware/auth/authMiddleware.js";
 
@@ -33,6 +36,54 @@ router.use(protect);
  *         description: List of all users
  */
 router.get("/", restrictTo("ADMIN"), listUsers);
+
+/**
+ * @swagger
+ * /users/me:
+ *   get:
+ *     summary: Get current user profile
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: User profile data
+ */
+router.get("/me", getMe);
+
+/**
+ * @swagger
+ * /users/me:
+ *   put:
+ *     summary: Update current user profile
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Profile updated
+ */
+router.put("/me", updateMe);
+
+/**
+ * @swagger
+ * /users/fcm-token:
+ *   patch:
+ *     summary: Update FCM token for push notifications
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               fcmToken:
+ *                 type: string
+ */
+router.patch("/fcm-token", updateFcmToken);
 
 /**
  * @swagger
