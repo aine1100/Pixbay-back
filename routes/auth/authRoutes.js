@@ -1,12 +1,13 @@
 import express from "express";
-import { 
-  register, 
-  login, 
-  verifyAccount, 
-  forgotPassword, 
+import {
+  register,
+  login,
+  verifyAccount,
+  forgotPassword,
   resetUserPassword,
   logout
 } from "../../controller/auth/authController.js";
+import { protect } from "../../middleware/auth/authMiddleware.js";
 
 /**
  * @swagger
@@ -114,7 +115,7 @@ router.post("/verify-otp", verifyAccount);
  * @swagger
  * /auth/forgot-password:
  *   post:
- *     summary: Request password reset token
+ *     summary: Request password reset OTP
  *     tags: [Auth]
  *     requestBody:
  *       required: true
@@ -129,7 +130,7 @@ router.post("/verify-otp", verifyAccount);
  *                 type: string
  *     responses:
  *       200:
- *         description: Password reset token sent
+ *         description: Reset OTP sent to email
  *       400:
  *         description: User not found
  */
@@ -139,7 +140,7 @@ router.post("/forgot-password", forgotPassword);
  * @swagger
  * /auth/reset-password:
  *   post:
- *     summary: Reset password with token
+ *     summary: Reset password with OTP
  *     tags: [Auth]
  *     requestBody:
  *       required: true
@@ -148,10 +149,13 @@ router.post("/forgot-password", forgotPassword);
  *           schema:
  *             type: object
  *             required:
- *               - token
+ *               - email
+ *               - otp
  *               - newPassword
  *             properties:
- *               token:
+ *               email:
+ *                 type: string
+ *               otp:
  *                 type: string
  *               newPassword:
  *                 type: string
@@ -159,7 +163,7 @@ router.post("/forgot-password", forgotPassword);
  *       200:
  *         description: Password reset successfully
  *       400:
- *         description: Invalid or expired token
+ *         description: Invalid/expired OTP
  */
 router.post("/reset-password", resetUserPassword);
 
@@ -186,6 +190,6 @@ router.post("/reset-password", resetUserPassword);
  *       400:
  *         description: Refresh token required
  */
-router.post("/logout", logout);
+router.post("/logout", protect, logout);
 
 export default router;

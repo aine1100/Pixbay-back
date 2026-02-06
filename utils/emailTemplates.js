@@ -70,3 +70,23 @@ export const passwordResetTemplate = (firstName, resetURL) => ({
         </div>
     `
 });
+
+/**
+ * Template for Password Reset via OTP
+ */
+export const passwordResetOTPTemplate = (firstName, otp) => ({
+    subject: "Your Password Reset Code - Pixbay",
+    html: `
+        <div style="${baseStyle}">
+            <h1 style="${headerStyle}">Password Reset Request</h1>
+            <p>Hello ${firstName},</p>
+            <p>You requested to reset your password. Please use the 6-digit security code below to complete the process:</p>
+            <div style="font-size: 32px; font-weight: bold; letter-spacing: 5px; text-align: center; margin: 30px 0; color: #e74c3c;">
+                ${otp}
+            </div>
+            <p>This code will expire in <strong>1 hour</strong>. If you did not request a password reset, please ignore this email and ensure your account is secure.</p>
+            <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+            <p style="font-size: 12px; color: #777;">&copy; 2026 Pixbay Marketplace. All rights reserved.</p>
+        </div>
+    `
+});

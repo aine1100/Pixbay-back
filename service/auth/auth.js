@@ -1,14 +1,14 @@
 import prisma from "../../prisma/client.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import { 
-    generateAccessToken, 
-    generateRefreshToken, 
-    generateOTP, 
-    generateResetToken 
+import {
+    generateAccessToken,
+    generateRefreshToken,
+    generateOTP,
+    generateResetToken
 } from "../../utils/tokens.js";
 import { sendEmail } from "../../utils/email.js";
-import { otpTemplate, passwordResetTemplate } from "../../utils/emailTemplates.js";
+import { otpTemplate, passwordResetOTPTemplate } from "../../utils/emailTemplates.js";
 
 /**
  * Register a new user and generate OTP for verification
@@ -124,7 +124,7 @@ export const LoginUser = async (userData) => {
 }
 
 /**
- * Request password reset token
+ * Request password reset OTP
  */
 export const requestPasswordReset = async (email) => {
     const user = await prisma.user.findUnique({
@@ -135,7 +135,7 @@ export const requestPasswordReset = async (email) => {
         throw new Error("User with this email does not exist");
     }
 
-    const resetToken = generateResetToken();
+    const resetToken = generateOTP(); // Using 6-digit OTP for reset too
     const resetTokenExpires = new Date(Date.now() + 1 * 60 * 60 * 1000); // 1 hour from now
 
     await prisma.user.update({
@@ -146,31 +146,31 @@ export const requestPasswordReset = async (email) => {
         }
     });
 
-    // Generate reset URL
-    const frontendURL = process.env.FRONTEND_URL || "http://localhost:3000";
-    const resetURL = `${frontendURL}/reset-password?token=${resetToken}`;
-
-    // Send reset URL via email using reusable template
-    const template = passwordResetTemplate(user.firstName, resetURL);
+    // Send reset OTP via email using new template
+    const template = passwordResetOTPTemplate(user.firstName, resetToken);
     await sendEmail(email, template.subject, template.html);
 
-    return { message: "Password reset link sent to your email" };
+    return { message: "Password reset OTP sent to your email" };
 }
 
 /**
- * Reset password using token
+ * Reset password using email and OTP
  */
-export const resetPassword = async (resetToken, newPassword) => {
+export const resetPassword = async (email, otp, newPassword) => {
     const user = await prisma.user.findUnique({
-        where: { resetToken }
+        where: { email }
     });
 
     if (!user) {
-        throw new Error("Invalid or expired reset token");
+        throw new Error("User not found");
+    }
+
+    if (user.resetToken !== otp) {
+        throw new Error("Invalid reset OTP");
     }
 
     if (user.resetTokenExpires < new Date()) {
-        throw new Error("Reset token has expired");
+        throw new Error("Reset OTP has expired");
     }
 
     const saltRounds = parseInt(process.env.SALT_ROUNDS) || 10;
