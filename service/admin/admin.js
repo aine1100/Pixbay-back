@@ -55,9 +55,23 @@ export const getCreators = async (filters = {}) => {
 export const verifyCreator = async (creatorId, data) => {
     const { status, verifiedBadge = false } = data;
     
-    // 1. Update Creator status
-    const creator = await prisma.creator.update({
-        where: { id: creatorId },
+    // 1. Find the creator first (support both creator.id and creator.userId)
+    const creatorRecord = await prisma.creator.findFirst({
+        where: {
+            OR: [
+                { id: creatorId },
+                { userId: creatorId }
+            ]
+        }
+    });
+
+    if (!creatorRecord) {
+        throw new Error("Creator not found with the provided identifier");
+    }
+
+    // 2. Update Creator status
+    const updatedCreator = await prisma.creator.update({
+        where: { id: creatorRecord.id },
         data: {
             verificationStatus: status, // APPROVED, REJECTED, etc.
             isVerified: status === 'APPROVED',
@@ -67,13 +81,13 @@ export const verifyCreator = async (creatorId, data) => {
         include: { user: true }
     });
 
-    // 2. Also update User isVerified if approved
+    // 3. Also update User isVerified if approved
     if (status === 'APPROVED') {
         await prisma.user.update({
-            where: { id: creator.userId },
+            where: { id: updatedCreator.userId },
             data: { isVerified: true }
         });
     }
 
-    return creator;
+    return updatedCreator;
 };

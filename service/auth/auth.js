@@ -120,6 +120,12 @@ export const LoginUser = async (userData) => {
     const accessToken = generateAccessToken(user.id);
     const refreshToken = generateRefreshToken(user.id);
 
+    // Update lastLoginAt and create refresh token
+    const updatedUser = await prisma.user.update({
+        where: { id: user.id },
+        data: { lastLoginAt: new Date() }
+    });
+
     await prisma.refreshToken.create({
         data: {
             userId: user.id,
@@ -128,7 +134,7 @@ export const LoginUser = async (userData) => {
         }
     });
 
-    const { passwordHash: _, ...userWithoutPassword } = user;
+    const { passwordHash: _, ...userWithoutPassword } = updatedUser;
     return { user: userWithoutPassword, accessToken, refreshToken }
 }
 
