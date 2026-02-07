@@ -2,7 +2,9 @@ import express from "express";
 import {
     getMessages,
     listChats,
-    initiateChat
+    initiateChat,
+    markAsRead,
+    totalUnread
 } from "../../controller/chat/chatController.js";
 import { protect } from "../../middleware/auth/authMiddleware.js";
 
@@ -21,12 +23,23 @@ router.use(protect);
  * @swagger
  * /chats:
  *   get:
- *     summary: List all active chats for current user
+ *     summary: List all active chats for current user (Inbox)
  *     tags: [Chat]
  *     security:
  *       - bearerAuth: []
  */
 router.get("/", listChats);
+
+/**
+ * @swagger
+ * /chats/unread-count:
+ *   get:
+ *     summary: Get total unread messages count across all active chats
+ *     tags: [Chat]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.get("/unread-count", totalUnread);
 
 /**
  * @swagger
@@ -62,5 +75,20 @@ router.post("/initiate", initiateChat);
  *         required: true
  */
 router.get("/:chatId/messages", getMessages);
+
+/**
+ * @swagger
+ * /chats/{chatId}/read:
+ *   patch:
+ *     summary: Mark all messages in a chat as read
+ *     tags: [Chat]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: chatId
+ *         required: true
+ */
+router.patch("/:chatId/read", markAsRead);
 
 export default router;

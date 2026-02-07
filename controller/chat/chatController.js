@@ -48,3 +48,31 @@ export const initiateChat = async (req, res) => {
         });
     }
 };
+
+export const markAsRead = async (req, res) => {
+    try {
+        const { chatId } = req.params;
+        const result = await chatService.markChatAsRead(chatId, req.user.id);
+        res.status(200).json(result);
+    } catch (error) {
+        res.status(400).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+
+export const totalUnread = async (req, res) => {
+    try {
+        const count = await chatService.getTotalUnreadCount(req.user.id);
+        res.status(200).json({
+            success: true,
+            count
+        });
+    } catch (error) {
+        res.status(400).json({
+            success: false,
+            message: error.message
+        });
+    }
+};

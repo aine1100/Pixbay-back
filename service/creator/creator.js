@@ -1,5 +1,4 @@
 import prisma from "../../prisma/client.js";
-import { uploadFile } from "../../utils/supabase.js";
 
 /**
  * Step 1: Submit Identity Documents

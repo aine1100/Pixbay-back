@@ -15,11 +15,11 @@ export const activateIdentity = async (req, res) => {
         if (req.files) {
             if (req.files.idFront) {
                 const file = req.files.idFront[0];
-                idFrontUrl = await uploadFile('creators', `identity/${userId}_front_${Date.now()}`, file.buffer, { contentType: file.mimetype });
+                idFrontUrl = await uploadFile(`identity/${userId}_front_${Date.now()}`, file.buffer, undefined, { contentType: file.mimetype });
             }
             if (req.files.idBack) {
                 const file = req.files.idBack[0];
-                idBackUrl = await uploadFile('creators', `identity/${userId}_back_${Date.now()}`, file.buffer, { contentType: file.mimetype });
+                idBackUrl = await uploadFile(`identity/${userId}_back_${Date.now()}`, file.buffer, undefined, { contentType: file.mimetype });
             }
         }
 
@@ -65,7 +65,7 @@ export const uploadPortfolio = async (req, res) => {
                 const type = file.mimetype.startsWith('image/') ? 'IMAGE' :
                     file.mimetype.startsWith('video/') ? 'VIDEO' : 'DOCUMENT';
 
-                const url = await uploadFile('creators', `portfolio/${userId}_${Date.now()}_${file.originalname}`, file.buffer, { contentType: file.mimetype });
+                const url = await uploadFile(`portfolio/${userId}_${Date.now()}_${file.originalname}`, file.buffer, undefined, { contentType: file.mimetype });
                 items.push({ type, url, metadata: { originalName: file.originalname } });
             }));
         }

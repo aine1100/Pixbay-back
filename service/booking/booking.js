@@ -1,4 +1,5 @@
 import prisma from "../../prisma/client.js";
+import { notifyUser } from "../notification/notification.js";
 
 /**
  * Create a new booking
@@ -21,10 +22,12 @@ export const createBooking = async (clientId, bookingData) => {
             status: 'PENDING'
         },
         include: {
+            client: { select: { firstName: true, lastName: true } },
             creator: {
                 include: {
                     user: {
                         select: {
+                            id: true,
                             firstName: true,
                             lastName: true
                         }
@@ -33,6 +36,16 @@ export const createBooking = async (clientId, bookingData) => {
             }
         }
     });
+
+    // Notify Creator
+    await notifyUser(booking.creator.user.id, {
+        type: 'BOOKING',
+        title: 'New Booking Request',
+        message: `You have a new booking request from ${booking.client.firstName} ${booking.client.lastName}`,
+        metadata: { bookingId: booking.id, type: 'NEW_BOOKING' }
+    });
+
+    return booking;
 };
 
 /**
@@ -100,10 +113,36 @@ export const updateBookingStatus = async (id, userId, status) => {
         throw new Error("Booking not found or you don't have permission to update it");
     }
 
-    return await prisma.booking.update({
+    const updatedBooking = await prisma.booking.update({
         where: { id },
-        data: { status }
+        data: { status },
+        include: {
+            client: { select: { id: true } },
+            creator: { include: { user: { select: { id: true } } } }
+        }
     });
+
+    // Notify relevant party based on status
+    if (status === 'CONFIRMED') {
+        await notifyUser(updatedBooking.client.id, {
+            type: 'BOOKING',
+            title: 'Booking Confirmed!',
+            message: `Your booking ${updatedBooking.bookingNumber} has been confirmed by the creator.`,
+            metadata: { bookingId: updatedBooking.id, type: 'BOOKING_CONFIRMED' }
+        });
+    } else if (status === 'CANCELLED') {
+        const recipientId = userId === updatedBooking.clientId ?
+            updatedBooking.creator.user.id : updatedBooking.clientId;
+
+        await notifyUser(recipientId, {
+            type: 'BOOKING',
+            title: 'Booking Cancelled',
+            message: `Booking ${updatedBooking.bookingNumber} has been cancelled.`,
+            metadata: { bookingId: updatedBooking.id, type: 'BOOKING_CANCELLED' }
+        });
+    }
+
+    return updatedBooking;
 };
 
 /**

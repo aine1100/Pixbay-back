@@ -54,6 +54,20 @@ export const initSocket = (server) => {
             }
         });
 
+        // Mark messages as read
+        socket.on('message_read', async (data) => {
+            const { chatId } = data;
+            try {
+                await chatService.markChatAsRead(chatId, socket.user.id);
+                socket.to(`chat_${chatId}`).emit('messages_marked_read', { 
+                    chatId, 
+                    userId: socket.user.id 
+                });
+            } catch (error) {
+                console.error('Socket mark read error:', error);
+            }
+        });
+
         // Typing Indicators
         socket.on('typing', (data) => {
             const { chatId } = data;

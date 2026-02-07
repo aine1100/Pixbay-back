@@ -5,6 +5,7 @@ dotenv.config();
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const defaultBucket = process.env.SUPABASE_BUCKET || 'pixbay';
 
 if (!supabaseUrl || !supabaseKey) {
     console.warn('Supabase credentials are missing. File uploads will fail.');
@@ -15,12 +16,12 @@ export const supabase = createClient(supabaseUrl, supabaseKey);
 
 /**
  * Upload a file to a Supabase storage bucket
- * @param {string} bucket - The name of the bucket
  * @param {string} path - The destination path within the bucket
  * @param {Buffer|Blob|File} file - The file content to upload
+ * @param {string} bucket - The name of the bucket (optional, defaults to SUPABASE_BUCKET)
  * @param {Object} options - Additional options (contentType, etc.)
  */
-export const uploadFile = async (bucket, path, file, options = {}) => {
+export const uploadFile = async (path, file, bucket = defaultBucket, options = {}) => {
     const { data, error } = await supabase.storage
         .from(bucket)
         .upload(path, file, {
