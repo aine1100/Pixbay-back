@@ -57,16 +57,18 @@ export const submitPortfolio = async (userId, portfolioData) => {
         throw new Error("Portfolio items must be an array");
     }
 
-    const createdItems = await Promise.all(items.map(item =>
-        prisma.portfolioMedia.create({
-            data: {
-                creatorId: creator.id,
-                type: item.type, // "IMAGE", "VIDEO", "DOCUMENT", "LINK"
-                url: item.url,
-                metadata: item.metadata
-            }
-        })
-    ));
+    const createdItems = await prisma.$transaction(
+        items.map(item =>
+            prisma.portfolioMedia.create({
+                data: {
+                    creatorId: creator.id,
+                    type: item.type, // "IMAGE", "VIDEO", "DOCUMENT", "LINK"
+                    url: item.url,
+                    metadata: item.metadata || {}
+                }
+            })
+        )
+    );
 
     return { message: "Portfolio items added successfully", count: createdItems.length };
 };

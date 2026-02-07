@@ -10,43 +10,52 @@ export const createBooking = async (clientId, bookingData) => {
     // Generate a unique booking number
     const bookingNumber = `BK-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
-    return await prisma.booking.create({
-        data: {
-            bookingNumber,
-            clientId,
-            creatorId,
-            serviceType,
-            category,
-            bookingDetails,
-            pricing,
-            status: 'PENDING'
-        },
-        include: {
-            client: { select: { firstName: true, lastName: true } },
-            creator: {
-                include: {
-                    user: {
-                        select: {
-                            id: true,
-                            firstName: true,
-                            lastName: true
+    let booking;
+    try {
+        booking = await prisma.booking.create({
+            data: {
+                bookingNumber,
+                clientId,
+                creatorId,
+                serviceType,
+                category,
+                bookingDetails,
+                pricing,
+                status: 'PENDING'
+            },
+            include: {
+                client: { select: { firstName: true, lastName: true } },
+                creator: {
+                    include: {
+                        user: {
+                            select: {
+                                id: true,
+                                firstName: true,
+                                lastName: true
+                            }
                         }
                     }
                 }
             }
+        });
+
+        // Notify Creator
+        await notifyUser(booking.creator.user.id, {
+            type: 'BOOKING',
+            title: 'New Booking Request',
+            message: `You have a new booking request from ${booking.client.firstName} ${booking.client.lastName}`,
+            metadata: { bookingId: booking.id, type: 'NEW_BOOKING' }
+        });
+
+        return booking;
+    } catch (error) {
+        // ROLLBACK: If booking was created but notification failed
+        if (booking?.id) {
+            await prisma.booking.delete({ where: { id: booking.id } }).catch(e => {});
         }
-    });
-
-    // Notify Creator
-    await notifyUser(booking.creator.user.id, {
-        type: 'BOOKING',
-        title: 'New Booking Request',
-        message: `You have a new booking request from ${booking.client.firstName} ${booking.client.lastName}`,
-        metadata: { bookingId: booking.id, type: 'NEW_BOOKING' }
-    });
-
-    return booking;
-};
+        throw error;
+    }
+}
 
 /**
  * Get booking by ID
@@ -113,36 +122,49 @@ export const updateBookingStatus = async (id, userId, status) => {
         throw new Error("Booking not found or you don't have permission to update it");
     }
 
-    const updatedBooking = await prisma.booking.update({
-        where: { id },
-        data: { status },
-        include: {
-            client: { select: { id: true } },
-            creator: { include: { user: { select: { id: true } } } }
+    const oldStatus = booking.status;
+    let updatedBooking;
+    try {
+        updatedBooking = await prisma.booking.update({
+            where: { id },
+            data: { status },
+            include: {
+                client: { select: { id: true } },
+                creator: { include: { user: { select: { id: true } } } }
+            }
+        });
+
+        // Notify relevant party based on status
+        if (status === 'CONFIRMED') {
+            await notifyUser(updatedBooking.client.id, {
+                type: 'BOOKING',
+                title: 'Booking Confirmed!',
+                message: `Your booking ${updatedBooking.bookingNumber} has been confirmed by the creator.`,
+                metadata: { bookingId: updatedBooking.id, type: 'BOOKING_CONFIRMED' }
+            });
+        } else if (status === 'CANCELLED') {
+            const recipientId = userId === updatedBooking.clientId ?
+                updatedBooking.creator.user.id : updatedBooking.clientId;
+
+            await notifyUser(recipientId, {
+                type: 'BOOKING',
+                title: 'Booking Cancelled',
+                message: `Booking ${updatedBooking.bookingNumber} has been cancelled.`,
+                metadata: { bookingId: updatedBooking.id, type: 'BOOKING_CANCELLED' }
+            });
         }
-    });
 
-    // Notify relevant party based on status
-    if (status === 'CONFIRMED') {
-        await notifyUser(updatedBooking.client.id, {
-            type: 'BOOKING',
-            title: 'Booking Confirmed!',
-            message: `Your booking ${updatedBooking.bookingNumber} has been confirmed by the creator.`,
-            metadata: { bookingId: updatedBooking.id, type: 'BOOKING_CONFIRMED' }
-        });
-    } else if (status === 'CANCELLED') {
-        const recipientId = userId === updatedBooking.clientId ?
-            updatedBooking.creator.user.id : updatedBooking.clientId;
-
-        await notifyUser(recipientId, {
-            type: 'BOOKING',
-            title: 'Booking Cancelled',
-            message: `Booking ${updatedBooking.bookingNumber} has been cancelled.`,
-            metadata: { bookingId: updatedBooking.id, type: 'BOOKING_CANCELLED' }
-        });
+        return updatedBooking;
+    } catch (error) {
+        // ROLLBACK: Revert status if notification fails
+        if (updatedBooking) {
+            await prisma.booking.update({
+                where: { id: updatedBooking.id },
+                data: { status: oldStatus }
+            }).catch(e => {});
+        }
+        throw error;
     }
-
-    return updatedBooking;
 };
 
 /**

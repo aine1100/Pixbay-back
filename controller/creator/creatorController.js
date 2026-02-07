@@ -1,10 +1,11 @@
 import * as creatorService from "../../service/creator/creator.js";
-import { uploadFile } from "../../utils/supabase.js";
+import { uploadFile, deleteFiles } from "../../utils/supabase.js";
 
 /**
  * Controller for Step 1: Identity Verification
  */
 export const activateIdentity = async (req, res) => {
+    const uploadedPaths = [];
     try {
         const userId = req.user.id;
         const { nationalId, country } = req.body;
@@ -15,11 +16,15 @@ export const activateIdentity = async (req, res) => {
         if (req.files) {
             if (req.files.idFront) {
                 const file = req.files.idFront[0];
-                idFrontUrl = await uploadFile(`identity/${userId}_front_${Date.now()}`, file.buffer, undefined, { contentType: file.mimetype });
+                const path = `identity/${userId}_front_${Date.now()}`;
+                idFrontUrl = await uploadFile(path, file.buffer, undefined, { contentType: file.mimetype });
+                uploadedPaths.push(path);
             }
             if (req.files.idBack) {
                 const file = req.files.idBack[0];
-                idBackUrl = await uploadFile(`identity/${userId}_back_${Date.now()}`, file.buffer, undefined, { contentType: file.mimetype });
+                const path = `identity/${userId}_back_${Date.now()}`;
+                idBackUrl = await uploadFile(path, file.buffer, undefined, { contentType: file.mimetype });
+                uploadedPaths.push(path);
             }
         }
 
@@ -36,6 +41,10 @@ export const activateIdentity = async (req, res) => {
             data: result.creator
         });
     } catch (error) {
+        // ROLLBACK: Delete files from Supabase if DB operation failed
+        if (uploadedPaths.length > 0) {
+            await deleteFiles(uploadedPaths).catch(e => console.error("Identity file rollback failed:", e));
+        }
         res.status(400).json({
             success: false,
             message: error.message
@@ -47,6 +56,7 @@ export const activateIdentity = async (req, res) => {
  * Controller for Step 2: Portfolio Upload
  */
 export const uploadPortfolio = async (req, res) => {
+    const uploadedPaths = [];
     try {
         const userId = req.user.id;
         const { links } = req.body; // Array of external links
@@ -65,7 +75,9 @@ export const uploadPortfolio = async (req, res) => {
                 const type = file.mimetype.startsWith('image/') ? 'IMAGE' :
                     file.mimetype.startsWith('video/') ? 'VIDEO' : 'DOCUMENT';
 
-                const url = await uploadFile(`portfolio/${userId}_${Date.now()}_${file.originalname}`, file.buffer, undefined, { contentType: file.mimetype });
+                const path = `portfolio/${userId}_${Date.now()}_${file.originalname}`;
+                const url = await uploadFile(path, file.buffer, undefined, { contentType: file.mimetype });
+                uploadedPaths.push(path);
                 items.push({ type, url, metadata: { originalName: file.originalname } });
             }));
         }
@@ -78,6 +90,10 @@ export const uploadPortfolio = async (req, res) => {
             count: result.count
         });
     } catch (error) {
+        // ROLLBACK: Delete files from Supabase if DB operation failed
+        if (uploadedPaths.length > 0) {
+            await deleteFiles(uploadedPaths).catch(e => console.error("Portfolio file rollback failed:", e));
+        }
         res.status(400).json({
             success: false,
             message: error.message

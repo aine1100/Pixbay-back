@@ -30,26 +30,35 @@ export const registerUser = async (userData) => {
     const otp = generateOTP();
     const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes from now
 
-    const user = await prisma.user.create({
-        data: {
-            passwordHash,
-            firstName,
-            lastName,
-            email,
-            role: role || "CLIENT",
-            isActive: true,
-            isVerified: false,
-            otp,
-            otpExpires
+    let user;
+    try {
+        user = await prisma.user.create({
+            data: {
+                passwordHash,
+                firstName,
+                lastName,
+                email,
+                role: role || "CLIENT",
+                isActive: true,
+                isVerified: false,
+                otp,
+                otpExpires
+            }
+        });
+
+        // Send the OTP via email
+        const template = otpTemplate(firstName, otp);
+        await sendEmail(email, template.subject, template.html);
+
+        const { passwordHash: _, otp: __, otpExpires: ___, ...userRegistered } = user;
+        return userRegistered;
+    } catch (error) {
+        // ROLLBACK: If user was created but email failed, remove user
+        if (user?.id) {
+            await prisma.user.delete({ where: { id: user.id } }).catch(e => console.error("Rollback failed:", e));
         }
-    })
-
-    // Send the OTP via email using reusable template
-    const template = otpTemplate(firstName, otp);
-    await sendEmail(email, template.subject, template.html);
-
-    const { passwordHash: _, otp: __, otpExpires: ___, ...userRegistered } = user;
-    return userRegistered;
+        throw error;
+    }
 }
 
 /**
@@ -138,19 +147,31 @@ export const requestPasswordReset = async (email) => {
     const resetToken = generateOTP(); // Using 6-digit OTP for reset too
     const resetTokenExpires = new Date(Date.now() + 1 * 60 * 60 * 1000); // 1 hour from now
 
-    await prisma.user.update({
-        where: { email },
-        data: {
-            resetToken,
-            resetTokenExpires
-        }
-    });
+    try {
+        await prisma.user.update({
+            where: { email },
+            data: {
+                resetToken,
+                resetTokenExpires
+            }
+        });
 
-    // Send reset OTP via email using new template
-    const template = passwordResetOTPTemplate(user.firstName, resetToken);
-    await sendEmail(email, template.subject, template.html);
+        // Send reset OTP via email using new template
+        const template = passwordResetOTPTemplate(user.firstName, resetToken);
+        await sendEmail(email, template.subject, template.html);
 
-    return { message: "Password reset OTP sent to your email" };
+        return { message: "Password reset OTP sent to your email" };
+    } catch (error) {
+        // ROLLBACK: Clear reset tokens if email failed
+        await prisma.user.update({
+            where: { email },
+            data: {
+                resetToken: null,
+                resetTokenExpires: null
+            }
+        }).catch(e => console.error("Rollback failed:", e));
+        throw error;
+    }
 }
 
 /**

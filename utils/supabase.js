@@ -40,3 +40,22 @@ export const uploadFile = async (path, file, bucket = defaultBucket, options = {
 
     return publicUrl;
 };
+
+/**
+ * Delete a file or files from Supabase storage
+ * @param {string|string[]} paths - Path or array of paths to delete
+ * @param {string} bucket - The name of the bucket
+ */
+export const deleteFiles = async (paths, bucket = defaultBucket) => {
+    const pathsArray = Array.isArray(paths) ? paths : [paths];
+    const { data, error } = await supabase.storage
+        .from(bucket)
+        .remove(pathsArray);
+
+    if (error) {
+        console.error(`Supabase Delete Error: ${error.message}`);
+        // We don't necessarily throw here to avoid interrupting a main error handler,
+        // but it's available if needed.
+    }
+    return data;
+};

@@ -8,9 +8,10 @@ import { sendPushNotification } from "../../utils/notifications.js";
 export const notifyUser = async (userId, data) => {
     const { type, title, message, metadata = {} } = data;
 
+    let notification;
     try {
         // 1. Save to Database (In-App)
-        const notification = await prisma.notification.create({
+        notification = await prisma.notification.create({
             data: {
                 userId,
                 type,
@@ -29,7 +30,12 @@ export const notifyUser = async (userId, data) => {
 
         return notification;
     } catch (error) {
+        // ROLLBACK: If notification was saved but Push failed, remove it
+        if (notification?.id) {
+            await prisma.notification.delete({ where: { id: notification.id } }).catch(e => console.error("Notification rollback failed:", e));
+        }
         console.error("Notification Service Error:", error);
+        throw error; // Propagate error for higher-level rollback (e.g., in saveMessage)
     }
 };
 

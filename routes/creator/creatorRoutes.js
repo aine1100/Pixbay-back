@@ -17,29 +17,30 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 /**
  * @swagger
- * tags:
- *   name: Creator Portal
- *   description: Multi-step activation and management for Creators
- */
-
-/**
- * @swagger
  * /creators:
  *   get:
- *     summary: Browse verified creators
+ *     summary: Browse verified creators (Directory)
+ *     description: Returns a list of creators with their profile previews, ratings, and portfolio samples.
  *     tags: [Creator Portal]
  *     parameters:
  *       - in: query
  *         name: type
+ *         description: Filter by creator type (e.g., PHOTOGRAPHER, VIDEOGRAPHER)
  *         schema:
  *           type: string
  *       - in: query
  *         name: city
+ *         description: Filter by city
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: country
+ *         description: Filter by country
  *         schema:
  *           type: string
  *     responses:
  *       200:
- *         description: List of creators
+ *         description: A rich list of verified creators
  */
 router.get("/", browseCreators);
 

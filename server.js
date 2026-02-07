@@ -8,6 +8,7 @@ import jobRoutes from "./routes/job/jobRoutes.js";
 import bookingRoutes from "./routes/booking/bookingRoutes.js";
 import chatRoutes from "./routes/chat/chatRoutes.js";
 import notificationRoutes from "./routes/notification/notificationRoutes.js";
+import adminRoutes from "./routes/admin/adminRoutes.js";
 import { setupSwagger } from "./utils/swagger.js";
 import { initSocket } from "./utils/socket.js";
 import http from 'http';
@@ -35,6 +36,7 @@ app.use("/api/v1/jobs", jobRoutes);
 app.use("/api/v1/bookings", bookingRoutes);
 app.use("/api/v1/chats", chatRoutes);
 app.use("/api/v1/notifications", notificationRoutes);
+app.use("/api/v1/admin", adminRoutes);
 
 const port = process.env.DEV_PORT || 3000;
 server.listen(port, () => {

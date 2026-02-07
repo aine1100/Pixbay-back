@@ -59,17 +59,30 @@ export const listCreators = async (filters = {}) => {
         where: {
             verificationStatus: 'APPROVED', // Only show verified creators publicly
             ...(type && { creatorType: type }),
-            ...(city && { baseCity: city }),
-            ...(country && { country: country })
+            ...(city && { user: { city: city } }), // In User model
+            ...(country && { user: { country: country } })
         },
-        include: {
+        select: {
+            id: true,
+            creatorType: true,
+            bio: true,
+            pricing: true,
+            verificationStatus: true,
             user: {
                 select: {
+                    id: true,
                     firstName: true,
                     lastName: true,
-                    profilePicture: true
+                    profilePicture: true,
+                    city: true,
+                    country: true
                 }
+            },
+            portfolioMedia: {
+                take: 3, // Show a few preview items
+                select: { url: true, type: true }
             }
-        }
+        },
+        orderBy: { createdAt: 'desc' }
     });
 };
