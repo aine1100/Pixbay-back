@@ -8,7 +8,7 @@ export const getAllUsers = async (filters = {}) => {
     return await prisma.user.findMany({
         where: {
             ...(role && { role }),
-            ...(isActive !== undefined && { isActive: isActive === 'true' })
+            ...(isActive !== undefined && { isActive: isActive === "true" })
         },
         select: {
             id: true,
@@ -20,7 +20,7 @@ export const getAllUsers = async (filters = {}) => {
             createdAt: true,
             lastLoginAt: true
         },
-        orderBy: { createdAt: 'desc' }
+        orderBy: { createdAt: "desc" }
     });
 };
 
@@ -45,7 +45,7 @@ export const getCreators = async (filters = {}) => {
                 }
             }
         },
-        orderBy: { createdAt: 'desc' }
+        orderBy: { createdAt: "desc" }
     });
 };
 
@@ -74,15 +74,15 @@ export const verifyCreator = async (creatorId, data) => {
         where: { id: creatorRecord.id },
         data: {
             verificationStatus: status, // APPROVED, REJECTED, etc.
-            isVerified: status === 'APPROVED',
-            verifiedBadge: status === 'APPROVED' ? verifiedBadge : false,
-            approvedAt: status === 'APPROVED' ? new Date() : null
+            isVerified: status === "APPROVED",
+            verifiedBadge: status === "APPROVED" ? verifiedBadge : false,
+            approvedAt: status === "APPROVED" ? new Date() : null
         },
         include: { user: true }
     });
 
     // 3. Also update User isVerified if approved
-    if (status === 'APPROVED') {
+    if (status === "APPROVED") {
         await prisma.user.update({
             where: { id: updatedCreator.userId },
             data: { isVerified: true }

@@ -11,7 +11,7 @@ import notificationRoutes from "./routes/notification/notificationRoutes.js";
 import adminRoutes from "./routes/admin/adminRoutes.js";
 import { setupSwagger } from "./utils/swagger.js";
 import { initSocket } from "./utils/socket.js";
-import http from 'http';
+import http from "http";
 
 dotenv.config();
 
@@ -40,5 +40,5 @@ app.use("/api/v1/admin", adminRoutes);
 
 const port = process.env.DEV_PORT || 3000;
 server.listen(port, () => {
-    console.log(`Server running on port ${port}`);
+    console.info(`Server running on port ${port}`);
 });

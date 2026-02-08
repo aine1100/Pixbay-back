@@ -1,0 +1,13 @@
+node_modules
+npm-debug.log
+.env
+.git
+.gitignore
+Dockerfile
+.dockerignore
+prisma/migrations
+README.md
+task.md
+implementation_plan.md
+api_documentation.md
+walkthrough.md

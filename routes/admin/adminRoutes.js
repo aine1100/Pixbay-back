@@ -13,7 +13,7 @@ router.get("/status", (req, res) => res.status(200).json({ success: true, messag
 
 // All routes require Admin privileges
 router.use(protect);
-router.use(restrictTo('ADMIN'));
+router.use(restrictTo("ADMIN"));
 
 /**
  * @swagger

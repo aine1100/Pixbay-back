@@ -22,5 +22,5 @@ export const generateOTP = () => {
 };
 
 export const generateResetToken = () => {
-    return crypto.randomBytes(32).toString('hex');
+    return crypto.randomBytes(32).toString("hex");
 };

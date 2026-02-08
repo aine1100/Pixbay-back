@@ -21,7 +21,7 @@ export const createBooking = async (clientId, bookingData) => {
                 category,
                 bookingDetails,
                 pricing,
-                status: 'PENDING'
+                status: "PENDING"
             },
             include: {
                 client: { select: { firstName: true, lastName: true } },
@@ -41,21 +41,21 @@ export const createBooking = async (clientId, bookingData) => {
 
         // Notify Creator
         await notifyUser(booking.creator.user.id, {
-            type: 'BOOKING',
-            title: 'New Booking Request',
+            type: "BOOKING",
+            title: "New Booking Request",
             message: `You have a new booking request from ${booking.client.firstName} ${booking.client.lastName}`,
-            metadata: { bookingId: booking.id, type: 'NEW_BOOKING' }
+            metadata: { bookingId: booking.id, type: "NEW_BOOKING" }
         });
 
         return booking;
     } catch (error) {
         // ROLLBACK: If booking was created but notification failed
         if (booking?.id) {
-            await prisma.booking.delete({ where: { id: booking.id } }).catch(e => {});
+            await prisma.booking.delete({ where: { id: booking.id } }).catch(e => { });
         }
         throw error;
     }
-}
+};
 
 /**
  * Get booking by ID
@@ -88,17 +88,17 @@ export const getBookingById = async (id, userId) => {
  * Get all bookings for a user (Client or Creator)
  */
 export const getUserBookings = async (userId, role) => {
-    if (role === 'CREATOR') {
+    if (role === "CREATOR") {
         return await prisma.booking.findMany({
             where: { creator: { userId } },
             include: { client: true },
-            orderBy: { createdAt: 'desc' }
+            orderBy: { createdAt: "desc" }
         });
     } else {
         return await prisma.booking.findMany({
             where: { clientId: userId },
             include: { creator: { include: { user: true } } },
-            orderBy: { createdAt: 'desc' }
+            orderBy: { createdAt: "desc" }
         });
     }
 };
@@ -135,22 +135,22 @@ export const updateBookingStatus = async (id, userId, status) => {
         });
 
         // Notify relevant party based on status
-        if (status === 'CONFIRMED') {
+        if (status === "CONFIRMED") {
             await notifyUser(updatedBooking.client.id, {
-                type: 'BOOKING',
-                title: 'Booking Confirmed!',
+                type: "BOOKING",
+                title: "Booking Confirmed!",
                 message: `Your booking ${updatedBooking.bookingNumber} has been confirmed by the creator.`,
-                metadata: { bookingId: updatedBooking.id, type: 'BOOKING_CONFIRMED' }
+                metadata: { bookingId: updatedBooking.id, type: "BOOKING_CONFIRMED" }
             });
-        } else if (status === 'CANCELLED') {
+        } else if (status === "CANCELLED") {
             const recipientId = userId === updatedBooking.clientId ?
                 updatedBooking.creator.user.id : updatedBooking.clientId;
 
             await notifyUser(recipientId, {
-                type: 'BOOKING',
-                title: 'Booking Cancelled',
+                type: "BOOKING",
+                title: "Booking Cancelled",
                 message: `Booking ${updatedBooking.bookingNumber} has been cancelled.`,
-                metadata: { bookingId: updatedBooking.id, type: 'BOOKING_CANCELLED' }
+                metadata: { bookingId: updatedBooking.id, type: "BOOKING_CANCELLED" }
             });
         }
 
@@ -161,7 +161,7 @@ export const updateBookingStatus = async (id, userId, status) => {
             await prisma.booking.update({
                 where: { id: updatedBooking.id },
                 data: { status: oldStatus }
-            }).catch(e => {});
+            }).catch(() => { });
         }
         throw error;
     }
@@ -176,7 +176,7 @@ export const deleteBooking = async (id, userId) => {
         where: {
             id,
             clientId: userId,
-            status: { in: ['PENDING', 'CANCELLED'] }
+            status: { in: ["PENDING", "CANCELLED"] }
         }
     });
 

@@ -49,7 +49,7 @@ export const protect = async (req, res, next) => {
         // GRANT ACCESS TO PROTECTED ROUTE
         req.user = currentUser;
         next();
-    } catch (error) {
+    } catch (_error) {
         return res.status(401).json({
             success: false,
             message: "Invalid token or token has expired.",

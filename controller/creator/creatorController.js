@@ -65,15 +65,15 @@ export const uploadPortfolio = async (req, res) => {
         // Add links if provided
         if (links && Array.isArray(links)) {
             links.forEach(link => {
-                items.push({ type: 'LINK', url: link });
+                items.push({ type: "LINK", url: link });
             });
         }
 
         // Upload portfolio files (Photos, Videos, PDFs)
         if (req.files && req.files.portfolio) {
             await Promise.all(req.files.portfolio.map(async (file) => {
-                const type = file.mimetype.startsWith('image/') ? 'IMAGE' :
-                    file.mimetype.startsWith('video/') ? 'VIDEO' : 'DOCUMENT';
+                const type = file.mimetype.startsWith("image/") ? "IMAGE" :
+                    file.mimetype.startsWith("video/") ? "VIDEO" : "DOCUMENT";
 
                 const path = `portfolio/${userId}_${Date.now()}_${file.originalname}`;
                 const url = await uploadFile(path, file.buffer, undefined, { contentType: file.mimetype });

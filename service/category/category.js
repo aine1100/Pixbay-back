@@ -41,7 +41,7 @@ export const getAllCategories = async (onlyActive = true) => {
                 }
             }
         },
-        orderBy: { orderIndex: 'asc' }
+        orderBy: { orderIndex: "asc" }
     });
 };
 

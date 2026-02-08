@@ -4,8 +4,7 @@ import jwt from "jsonwebtoken";
 import {
     generateAccessToken,
     generateRefreshToken,
-    generateOTP,
-    generateResetToken
+    generateOTP
 } from "../../utils/tokens.js";
 import { sendEmail } from "../../utils/email.js";
 import { otpTemplate, passwordResetOTPTemplate } from "../../utils/emailTemplates.js";
@@ -18,10 +17,10 @@ export const registerUser = async (userData) => {
 
     const existingUser = await prisma.user.findUnique({
         where: { email },
-    })
+    });
 
     if (existingUser) {
-        throw new Error("User with this email already exists")
+        throw new Error("User with this email already exists");
     }
 
     const saltRounds = parseInt(process.env.SALT_ROUNDS) || 10;
@@ -50,7 +49,7 @@ export const registerUser = async (userData) => {
         const template = otpTemplate(firstName, otp);
         await sendEmail(email, template.subject, template.html);
 
-        const { passwordHash: _, otp: __, otpExpires: ___, ...userRegistered } = user;
+        const { passwordHash: _1, otp: _2, otpExpires: _3, ...userRegistered } = user;
         return userRegistered;
     } catch (error) {
         // ROLLBACK: If user was created but email failed, remove user
@@ -59,7 +58,7 @@ export const registerUser = async (userData) => {
         }
         throw error;
     }
-}
+};
 
 /**
  * Verify account using OTP
@@ -96,7 +95,7 @@ export const verifyOTP = async (email, otp) => {
     });
 
     return { message: "Account verified successfully" };
-}
+};
 
 /**
  * Login user and issue access/refresh tokens
@@ -106,15 +105,15 @@ export const LoginUser = async (userData) => {
 
     const user = await prisma.user.findUnique({
         where: { email }
-    })
+    });
 
     if (!user) {
-        throw new Error("No user with this email found")
+        throw new Error("No user with this email found");
     }
 
-    const checkPassword = await bcrypt.compare(password, user.passwordHash)
+    const checkPassword = await bcrypt.compare(password, user.passwordHash);
     if (!checkPassword) {
-        throw new Error("Invalid password")
+        throw new Error("Invalid password");
     }
 
     const accessToken = generateAccessToken(user.id);
@@ -134,9 +133,9 @@ export const LoginUser = async (userData) => {
         }
     });
 
-    const { passwordHash: _, ...userWithoutPassword } = updatedUser;
-    return { user: userWithoutPassword, accessToken, refreshToken }
-}
+    const { passwordHash: _unused, ...userWithoutPassword } = updatedUser;
+    return { user: userWithoutPassword, accessToken, refreshToken };
+};
 
 /**
  * Request password reset OTP
@@ -178,7 +177,7 @@ export const requestPasswordReset = async (email) => {
         }).catch(e => console.error("Rollback failed:", e));
         throw error;
     }
-}
+};
 
 /**
  * Reset password using email and OTP
@@ -213,7 +212,7 @@ export const resetPassword = async (email, otp, newPassword) => {
     });
 
     return { message: "Password has been reset successfully" };
-}
+};
 
 /**
  * Logout user by deleting their refresh token
@@ -228,4 +227,4 @@ export const logoutUser = async (refreshToken) => {
     });
 
     return { message: "Logged out successfully" };
-}
+};

@@ -115,7 +115,7 @@ router.put("/pricing", updatePricing);
  */
 router.post(
     "/activate/step1", 
-    upload.fields([{ name: 'idFront', maxCount: 1 }, { name: 'idBack', maxCount: 1 }]), 
+    upload.fields([{ name: "idFront", maxCount: 1 }, { name: "idBack", maxCount: 1 }]), 
     activateIdentity
 );
 
@@ -148,7 +148,7 @@ router.post(
  */
 router.post(
     "/activate/step2", 
-    upload.fields([{ name: 'portfolio', maxCount: 5 }]), 
+    upload.fields([{ name: "portfolio", maxCount: 5 }]), 
     uploadPortfolio
 );
 

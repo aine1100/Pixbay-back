@@ -7,7 +7,7 @@ import { notifyUser } from "../notification/notification.js";
 export const getChatMessages = async (chatId, limit = 50, offset = 0) => {
     return await prisma.message.findMany({
         where: { chatId },
-        orderBy: { sentAt: 'desc' },
+        orderBy: { sentAt: "desc" },
         take: limit,
         skip: offset,
         include: {
@@ -25,7 +25,7 @@ export const getChatMessages = async (chatId, limit = 50, offset = 0) => {
 /**
  * Persist a new message and trigger notification
  */
-export const saveMessage = async (chatId, senderId, senderType, content, messageType = 'TEXT') => {
+export const saveMessage = async (chatId, senderId, senderType, content, messageType = "TEXT") => {
     let message;
     try {
         // 1. Save to database
@@ -53,10 +53,10 @@ export const saveMessage = async (chatId, senderId, senderType, content, message
         });
 
         if (chatData) {
-            const recipientType = senderId === chatData.booking.clientId ? 'CREATOR' : 'CLIENT';
+            const recipientType = senderId === chatData.booking.clientId ? "CREATOR" : "CLIENT";
             const currentUnread = (chatData.unreadCount || { client: 0, creator: 0 });
-            
-            if (recipientType === 'CREATOR') {
+
+            if (recipientType === "CREATOR") {
                 currentUnread.creator += 1;
             } else {
                 currentUnread.client += 1;
@@ -76,14 +76,14 @@ export const saveMessage = async (chatId, senderId, senderType, content, message
             });
 
             // 3. Trigger Push Notification to recipient
-            const recipientId = senderId === chatData.booking.clientId ? 
+            const recipientId = senderId === chatData.booking.clientId ?
                 chatData.booking.creator.userId : chatData.booking.clientId;
-            
+
             await notifyUser(recipientId, {
-                type: 'MESSAGE',
+                type: "MESSAGE",
                 title: "New Message",
-                body: typeof content === 'string' ? content : "You received a new file",
-                metadata: { chatId, type: 'CHAT_MESSAGE' }
+                body: typeof content === "string" ? content : "You received a new file",
+                metadata: { chatId, type: "CHAT_MESSAGE" }
             });
         }
 
@@ -91,7 +91,7 @@ export const saveMessage = async (chatId, senderId, senderType, content, message
     } catch (error) {
         // ROLLBACK: If message was saved but subsequent steps failed
         if (message?.id) {
-            await prisma.message.delete({ where: { id: message.id } }).catch(e => {});
+            await prisma.message.delete({ where: { id: message.id } }).catch(() => { });
             // Note: We don't rollback the unreadCount increment here to avoid complex state management,
             // but the message deletion ensures it doesn't appear in history.
             // Ideally, the Chat update would also be reversed, but manual rollback is tricky.
@@ -111,7 +111,7 @@ export const getOrCreateChat = async (bookingId) => {
 
     if (!chat) {
         chat = await prisma.chat.create({
-            data: { 
+            data: {
                 bookingId,
                 isActive: true
             }
@@ -142,7 +142,7 @@ export const getUserChats = async (userId) => {
                 }
             }
         },
-        orderBy: { updatedAt: 'desc' }
+        orderBy: { updatedAt: "desc" }
     });
 
     // Format for easier consumption by frontend
@@ -150,7 +150,7 @@ export const getUserChats = async (userId) => {
         const isClient = chat.booking.clientId === userId;
         const otherUser = isClient ? chat.booking.creator.user : chat.booking.client;
         const unreadCount = chat.unreadCount || { client: 0, creator: 0 };
-        
+
         return {
             id: chat.id,
             bookingId: chat.bookingId,
@@ -193,10 +193,10 @@ export const markChatAsRead = async (chatId, userId) => {
         where: {
             chatId,
             senderId: { not: userId },
-            status: { not: 'READ' }
+            status: { not: "READ" }
         },
         data: {
-            status: 'READ',
+            status: "READ",
             readAt: new Date()
         }
     });

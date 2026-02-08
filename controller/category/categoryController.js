@@ -19,7 +19,7 @@ export const list = async (req, res) => {
     try {
         const { all } = req.query;
         // Admins can see inactive categories with ?all=true
-        const onlyActive = req.user?.role === 'ADMIN' && all === 'true' ? false : true;
+        const onlyActive = req.user?.role === "ADMIN" && all === "true" ? false : true;
 
         const categories = await categoryService.getAllCategories(onlyActive);
         res.status(200).json({

@@ -57,7 +57,7 @@ export const listCreators = async (filters = {}) => {
 
     return await prisma.creator.findMany({
         where: {
-            verificationStatus: 'APPROVED', // Only show verified creators publicly
+            verificationStatus: "APPROVED", // Only show verified creators publicly
             ...(type && { creatorType: type }),
             ...(city && { user: { city: city } }), // In User model
             ...(country && { user: { country: country } })
@@ -83,6 +83,6 @@ export const listCreators = async (filters = {}) => {
                 select: { url: true, type: true }
             }
         },
-        orderBy: { createdAt: 'desc' }
+        orderBy: { createdAt: "desc" }
     });
 };

@@ -1,6 +1,6 @@
-import admin from 'firebase-admin';
-import dotenv from 'dotenv';
-import prisma from '../prisma/client.js';
+import admin from "firebase-admin";
+import dotenv from "dotenv";
+import prisma from "../prisma/client.js";
 
 dotenv.config();
 
@@ -13,8 +13,9 @@ if (serviceAccount) {
     admin.initializeApp({
         credential: admin.credential.cert(serviceAccount)
     });
+    console.log("Connected to firebase");
 } else {
-    console.warn('Firebase Service Account is missing. Push notifications will be simulated (logged to console).');
+    console.warn("Firebase Service Account is missing. Push notifications will be simulated (logged to console).");
 }
 
 /**
@@ -45,14 +46,14 @@ export const sendPushNotification = async (userId, payload) => {
 
         if (serviceAccount) {
             const response = await admin.messaging().send(message);
-            console.log('Successfully sent push notification:', response);
+            console.log("Successfully sent push notification:", response);
             return response;
         } else {
-            console.log('SIMULATED PUSH NOTIFICATION:', message);
-            return { messageId: 'simulated-id' };
+            console.log("SIMULATED PUSH NOTIFICATION:", message);
+            return { messageId: "simulated-id" };
         }
     } catch (error) {
-        console.error('Error sending push notification:', error);
+        console.error("Error sending push notification:", error);
     }
 };
 

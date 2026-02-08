@@ -48,7 +48,7 @@ export const getUserNotifications = async (userId, limit = 20, offset = 0, inclu
             userId,
             ...(includeArchived ? {} : { isArchived: false })
         },
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: "desc" },
         take: limit,
         skip: offset
     });

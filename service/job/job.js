@@ -20,7 +20,7 @@ export const getAllJobs = async (filters = {}) => {
     return await prisma.job.findMany({
         where: {
             ...(categoryId && { categoryId }),
-            ...(status ? { status } : { status: 'ACTIVE' }) // Default to active jobs
+            ...(status ? { status } : { status: "ACTIVE" }) // Default to active jobs
         },
         include: {
             client: {
@@ -33,7 +33,7 @@ export const getAllJobs = async (filters = {}) => {
             },
             category: true
         },
-        orderBy: { createdAt: 'desc' }
+        orderBy: { createdAt: "desc" }
     });
 };
 
@@ -59,7 +59,7 @@ export const getClientJobs = async (clientId) => {
         include: {
             category: true
         },
-        orderBy: { createdAt: 'desc' }
+        orderBy: { createdAt: "desc" }
     });
 };
 
