@@ -1,5 +1,5 @@
 import prisma from "../../prisma/client.js";
-import { sendPushNotification } from "../../utils/notifications.js";
+import { notificationQueue } from "../../utils/queue.js";
 
 /**
  * Unified notification helper
@@ -21,11 +21,14 @@ export const notifyUser = async (userId, data) => {
             }
         });
 
-        // 2. Send Push Notification
-        await sendPushNotification(userId, {
-            title,
-            body: message,
-            data: { ...metadata, notificationId: notification.id }
+        // 2. Offload Push Notification to background queue
+        await notificationQueue.add("sendPush", {
+            userId,
+            payload: {
+                title,
+                body: message,
+                data: { ...metadata, notificationId: notification.id }
+            }
         });
 
         return notification;

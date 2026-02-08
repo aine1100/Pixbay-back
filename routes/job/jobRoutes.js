@@ -8,6 +8,7 @@ import {
     deleteMyJob
 } from "../../controller/job/jobController.js";
 import { protect } from "../../middleware/auth/authMiddleware.js";
+import { cacheMiddleware } from "../../middleware/cache/cacheMiddleware.js";
 
 const router = express.Router();
 
@@ -28,7 +29,7 @@ const router = express.Router();
  *       200:
  *         description: List of jobs
  */
-router.get("/", listJobs);
+router.get("/", cacheMiddleware(3600), listJobs);
 
 /**
  * @swagger

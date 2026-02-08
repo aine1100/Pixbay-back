@@ -5,8 +5,8 @@ import {
     generateRefreshToken,
     generateOTP
 } from "../../utils/tokens.js";
-import { sendEmail } from "../../utils/email.js";
 import { otpTemplate, passwordResetOTPTemplate } from "../../utils/emailTemplates.js";
+import { emailQueue } from "../../utils/queue.js";
 
 /**
  * Register a new user and generate OTP for verification
@@ -44,9 +44,13 @@ export const registerUser = async (userData) => {
             }
         });
 
-        // Send the OTP via email
+        // Offload the OTP via email to background queue
         const template = otpTemplate(firstName, otp);
-        await sendEmail(email, template.subject, template.html);
+        await emailQueue.add("sendOTP", { 
+            email, 
+            subject: template.subject, 
+            html: template.html 
+        });
 
         const { passwordHash: _1, otp: _2, otpExpires: _3, ...userRegistered } = user;
         return userRegistered;
@@ -160,9 +164,13 @@ export const requestPasswordReset = async (email) => {
             }
         });
 
-        // Send reset OTP via email using new template
+        // Send reset OTP via email using new template and queue
         const template = passwordResetOTPTemplate(user.firstName, resetToken);
-        await sendEmail(email, template.subject, template.html);
+        await emailQueue.add("sendPasswordReset", {
+            email,
+            subject: template.subject,
+            html: template.html
+        });
 
         return { message: "Password reset OTP sent to your email" };
     } catch (error) {

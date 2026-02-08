@@ -1,6 +1,7 @@
 import admin from "firebase-admin";
 import dotenv from "dotenv";
 import prisma from "../prisma/client.js";
+import { createBreaker } from "./circuitBreaker.js";
 
 dotenv.config();
 
@@ -23,39 +24,39 @@ if (serviceAccount) {
  * @param {string} userId - ID of the recipient
  * @param {Object} payload - { title, body, data }
  */
-export const sendPushNotification = async (userId, payload) => {
-    try {
-        const user = await prisma.user.findUnique({
-            where: { id: userId },
-            select: { fcmToken: true }
-        });
+const _sendPushNotification = async (userId, payload) => {
+    const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { fcmToken: true }
+    });
 
-        if (!user || !user.fcmToken) {
-            console.log(`User ${userId} has no FCM token. Skipping push notification.`);
-            return;
-        }
+    if (!user || !user.fcmToken) {
+        console.log(`User ${userId} has no FCM token. Skipping push notification.`);
+        return;
+    }
 
-        const message = {
-            notification: {
-                title: payload.title,
-                body: payload.body
-            },
-            data: payload.data || {},
-            token: user.fcmToken
-        };
+    const message = {
+        notification: {
+            title: payload.title,
+            body: payload.body
+        },
+        data: payload.data || {},
+        token: user.fcmToken
+    };
 
-        if (serviceAccount) {
-            const response = await admin.messaging().send(message);
-            console.log("Successfully sent push notification:", response);
-            return response;
-        } else {
-            console.log("SIMULATED PUSH NOTIFICATION:", message);
-            return { messageId: "simulated-id" };
-        }
-    } catch (error) {
-        console.error("Error sending push notification:", error);
+    if (serviceAccount) {
+        const response = await admin.messaging().send(message);
+        console.log("Successfully sent push notification:", response);
+        return response;
+    } else {
+        console.log("SIMULATED PUSH NOTIFICATION:", message);
+        return { messageId: "simulated-id" };
     }
 };
+
+const pushBreaker = createBreaker(_sendPushNotification, "Push Notification Service (Firebase)");
+
+export const sendPushNotification = (userId, payload) => pushBreaker.fire(userId, payload);
 
 /**
  * Update user's FCM token

@@ -7,6 +7,7 @@ import {
     remove
 } from "../../controller/category/categoryController.js";
 import { protect, restrictTo } from "../../middleware/auth/authMiddleware.js";
+import { cacheMiddleware } from "../../middleware/cache/cacheMiddleware.js";
 
 const router = express.Router();
 
@@ -27,7 +28,7 @@ const router = express.Router();
  *       200:
  *         description: List of categories
  */
-router.get("/", list);
+router.get("/", cacheMiddleware(3600), list);
 
 /**
  * @swagger
