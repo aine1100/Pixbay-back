@@ -51,7 +51,7 @@ export const createBooking = async (clientId, bookingData) => {
     } catch (error) {
         // ROLLBACK: If booking was created but notification failed
         if (booking?.id) {
-            await prisma.booking.delete({ where: { id: booking.id } }).catch(e => { });
+            await prisma.booking.delete({ where: { id: booking.id } }).catch(() => { });
         }
         throw error;
     }

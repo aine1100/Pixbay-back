@@ -22,7 +22,7 @@ export const supabase = createClient(supabaseUrl, supabaseKey);
  * @param {Object} options - Additional options (contentType, etc.)
  */
 export const uploadFile = async (path, file, bucket = defaultBucket, options = {}) => {
-    const { data, error } = await supabase.storage
+    const { data: _data, error } = await supabase.storage
         .from(bucket)
         .upload(path, file, {
             upsert: true,
@@ -48,7 +48,7 @@ export const uploadFile = async (path, file, bucket = defaultBucket, options = {
  */
 export const deleteFiles = async (paths, bucket = defaultBucket) => {
     const pathsArray = Array.isArray(paths) ? paths : [paths];
-    const { data, error } = await supabase.storage
+    const { data: _data, error } = await supabase.storage
         .from(bucket)
         .remove(pathsArray);
 
@@ -57,5 +57,5 @@ export const deleteFiles = async (paths, bucket = defaultBucket) => {
         // We don't necessarily throw here to avoid interrupting a main error handler,
         // but it's available if needed.
     }
-    return data;
+    return _data;
 };
