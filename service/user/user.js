@@ -84,3 +84,56 @@ export const deleteUser = async (userId) => {
     });
     return { message: "User deleted permanently" };
 };
+
+/**
+ * Toggle saving a creator (Save/Unsave)
+ */
+export const toggleSavedCreator = async (userId, creatorId) => {
+    const existing = await prisma.savedCreator.findUnique({
+        where: {
+            userId_creatorId: { userId, creatorId }
+        }
+    });
+
+    if (existing) {
+        await prisma.savedCreator.delete({
+            where: { id: existing.id }
+        });
+        return { saved: false, message: "Creator removed from favorites" };
+    } else {
+        await prisma.savedCreator.create({
+            data: { userId, creatorId }
+        });
+        return { saved: true, message: "Creator added to favorites" };
+    }
+};
+
+/**
+ * Get all creators saved by a user
+ */
+export const getSavedCreators = async (userId) => {
+    const saved = await prisma.savedCreator.findMany({
+        where: { userId },
+        include: {
+            creator: {
+                include: {
+                    user: {
+                        select: {
+                            firstName: true,
+                            lastName: true,
+                            profilePicture: true,
+                            city: true,
+                            country: true
+                        }
+                    }
+                }
+            }
+        },
+        orderBy: { createdAt: "desc" }
+    });
+
+    return saved.map(s => ({
+        savedAt: s.createdAt,
+        ...s.creator
+    }));
+};

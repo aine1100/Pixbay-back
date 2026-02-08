@@ -188,3 +188,65 @@ export const deleteBooking = async (id, userId) => {
         where: { id }
     });
 };
+
+/**
+ * Register a check-in for a booking session
+ */
+export const registerCheckIn = async (bookingId, userId, sessionNumber, location) => {
+    // 1. Verify that the user is the creator for this booking
+    const booking = await prisma.booking.findFirst({
+        where: {
+            id: bookingId,
+            creator: { userId }
+        },
+        include: {
+            client: { select: { id: true, firstName: true } }
+        }
+    });
+
+    if (!booking) {
+        throw new Error("Booking not found or unauthorized. Only the assigned creator can check-in.");
+    }
+
+    // 2. Find the specific session
+    const session = await prisma.bookingSession.findFirst({
+        where: {
+            bookingId,
+            sessionNumber
+        }
+    });
+
+    if (!session) {
+        throw new Error(`Session #${sessionNumber} not found for this booking.`);
+    }
+
+    // 3. Update the session with check-in data
+    const updatedSession = await prisma.bookingSession.update({
+        where: { id: session.id },
+        data: {
+            status: "IN_PROGRESS",
+            checkIn: {
+                timestamp: new Date(),
+                location
+            }
+        }
+    });
+
+    // 4. Update booking status to IN_PROGRESS if it wasn't already
+    if (booking.status !== "IN_PROGRESS") {
+        await prisma.booking.update({
+            where: { id: bookingId },
+            data: { status: "IN_PROGRESS" }
+        });
+    }
+
+    // 5. Notify the client
+    await notifyUser(booking.client.id, {
+        type: "BOOKING",
+        title: "Creator Checked In",
+        message: `Your creator has checked in for session #${sessionNumber}.`,
+        metadata: { bookingId, sessionNumber, type: "CHECK_IN" }
+    });
+
+    return updatedSession;
+};

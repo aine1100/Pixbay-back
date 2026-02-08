@@ -12,6 +12,7 @@ import adminRoutes from "./routes/admin/adminRoutes.js";
 import { setupSwagger } from "./utils/swagger.js";
 import { initSocket } from "./utils/socket.js";
 import http from "http";
+import { globalRateLimiter } from "./middleware/auth/rateLimiter.js";
 
 dotenv.config();
 
@@ -26,6 +27,7 @@ setupSwagger(app);
 
 // Middleware
 app.use(express.json());
+app.use(globalRateLimiter);
 
 // Routes
 app.use("/api/v1/auth", authRoutes);

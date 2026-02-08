@@ -2,7 +2,9 @@ import express from "express";
 import { 
     getAllUsers, 
     getCreators, 
-    approveCreator 
+    approveCreator,
+    resolveDispute,
+    getSummary
 } from "../../controller/admin/adminController.js";
 import { protect, restrictTo } from "../../middleware/auth/authMiddleware.js";
 
@@ -162,5 +164,55 @@ router.get("/creators", getCreators);
  *                 data: { type: object }
  */
 router.patch("/creators/:creatorId/verify", approveCreator);
+
+/**
+ * @swagger
+ * /admin/disputes/{disputeId}/resolve:
+ *   patch:
+ *     summary: Resolve a dispute (Admins only)
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: disputeId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - resolution
+ *             properties:
+ *               status:
+ *                 type: string
+ *                 enum: [RESOLVED, UNDER_REVIEW]
+ *               resolution:
+ *                 type: string
+ *               refundAmount:
+ *                 type: number
+ *     responses:
+ *       200:
+ *         description: Dispute resolved successfully
+ */
+router.patch("/disputes/:disputeId/resolve", resolveDispute);
+
+/**
+ * @swagger
+ * /admin/summary:
+ *   get:
+ *     summary: Get platform-wide summary statistics (Admins only)
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Platform summary retrieved successfully
+ */
+router.get("/summary", getSummary);
 
 export default router;

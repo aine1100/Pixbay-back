@@ -57,3 +57,41 @@ export const approveCreator = async (req, res) => {
         });
     }
 };
+
+/**
+ * Resolve a dispute (Admin only)
+ */
+export const resolveDispute = async (req, res) => {
+    try {
+        const { disputeId } = req.params;
+        const result = await adminService.resolveDispute(disputeId, req.user.id, req.body);
+        res.status(200).json({
+            success: true,
+            message: "Dispute resolved successfully",
+            data: result
+        });
+    } catch (error) {
+        res.status(400).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+
+/**
+ * Get platform summary statistics (Admin only)
+ */
+export const getSummary = async (req, res) => {
+    try {
+        const summary = await adminService.getPlatformSummary();
+        res.status(200).json({
+            success: true,
+            data: summary
+        });
+    } catch (error) {
+        res.status(400).json({
+            success: false,
+            message: error.message
+        });
+    }
+};

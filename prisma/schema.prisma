@@ -167,6 +167,7 @@ model User {
   disputesAssigned Dispute[]     @relation("AdminAssigned")
   refreshTokens   RefreshToken[]
   jobs            Job[]          @relation("UserJobs")
+  savedCreators   SavedCreator[] @relation("UserSavedCreators")
 }
 
 model Creator {
@@ -203,6 +204,7 @@ model Creator {
   portfolioMedia PortfolioMedia[]
   bookings       Booking[]
   safetyCheckIns SafetyCheckIn[]
+  savedByUsers   SavedCreator[]
 }
 
 model PortfolioMedia {
@@ -431,4 +433,15 @@ model RefreshToken {
   expiresAt DateTime
   isRevoked Boolean  @default(false)
   createdAt DateTime @default(now())
+}
+
+model SavedCreator {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation("UserSavedCreators", fields: [userId], references: [id], onDelete: Cascade)
+  creatorId String
+  creator   Creator  @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, creatorId])
 }

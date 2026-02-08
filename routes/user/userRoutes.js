@@ -9,7 +9,9 @@ import {
     changeRole,
     getMe,
     updateMe,
-    updateFcmToken
+    updateFcmToken,
+    toggleFavorite,
+    getFavorites
 } from "../../controller/user/userController.js";
 import { protect, restrictTo } from "../../middleware/auth/authMiddleware.js";
 
@@ -221,5 +223,39 @@ router.patch("/:userId/role", restrictTo("ADMIN"), changeRole);
  *         description: User deleted permanently
  */
 router.delete("/:userId", restrictTo("ADMIN"), removeUser);
+
+/**
+ * @swagger
+ * /users/me/saved-creators:
+ *   get:
+ *     summary: Get all saved creators
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of saved creators
+ */
+router.get("/me/saved-creators", getFavorites);
+
+/**
+ * @swagger
+ * /users/me/saved-creators/{creatorId}:
+ *   post:
+ *     summary: Toggle saving a creator
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: creatorId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Toggled successfully
+ */
+router.post("/me/saved-creators/:creatorId", toggleFavorite);
 
 export default router;

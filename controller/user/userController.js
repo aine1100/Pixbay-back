@@ -192,3 +192,41 @@ export const updateFcmToken = async (req, res) => {
         });
     }
 };
+
+/**
+ * Toggle saving a creator
+ */
+export const toggleFavorite = async (req, res) => {
+    try {
+        const { creatorId } = req.params;
+        const result = await userService.toggleSavedCreator(req.user.id, creatorId);
+        res.status(200).json({
+            success: true,
+            ...result
+        });
+    } catch (error) {
+        res.status(400).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+
+/**
+ * Get all saved creators
+ */
+export const getFavorites = async (req, res) => {
+    try {
+        const creators = await userService.getSavedCreators(req.user.id);
+        res.status(200).json({
+            success: true,
+            count: creators.length,
+            data: creators
+        });
+    } catch (error) {
+        res.status(400).json({
+            success: false,
+            message: error.message
+        });
+    }
+};

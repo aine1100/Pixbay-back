@@ -4,7 +4,8 @@ import {
     list,
     getOne,
     updateStatus,
-    remove
+    remove,
+    checkIn
 } from "../../controller/booking/bookingController.js";
 import { protect } from "../../middleware/auth/authMiddleware.js";
 
@@ -140,5 +141,39 @@ router.patch("/:id/status", updateStatus);
  *         description: Booking deleted
  */
 router.delete("/:id", remove);
+
+/**
+ * @swagger
+ * /bookings/{id}/check-in:
+ *   post:
+ *     summary: Register a check-in for a booking session
+ *     tags: [Bookings]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - sessionNumber
+ *               - location
+ *             properties:
+ *               sessionNumber:
+ *                 type: integer
+ *               location:
+ *                 type: object
+ *     responses:
+ *       200:
+ *         description: Check-in successful
+ */
+router.post("/:id/check-in", checkIn);
 
 export default router;

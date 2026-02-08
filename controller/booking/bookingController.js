@@ -86,3 +86,23 @@ export const remove = async (req, res) => {
         });
     }
 };
+
+export const checkIn = async (req, res) => {
+    try {
+        const { id: bookingId } = req.params;
+        const { sessionNumber, location } = req.body;
+        const userId = req.user.id;
+
+        const session = await bookingService.registerCheckIn(bookingId, userId, sessionNumber, location);
+        res.status(200).json({
+            success: true,
+            message: `Check-in successful for session #${sessionNumber}`,
+            data: session
+        });
+    } catch (error) {
+        res.status(400).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
