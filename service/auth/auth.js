@@ -1,4 +1,5 @@
 import prisma from "../../prisma/client.js";
+import admin from "../../utils/firebase.js";
 import bcrypt from "bcrypt";
 import {
     generateAccessToken,
@@ -46,10 +47,10 @@ export const registerUser = async (userData) => {
 
         // Offload the OTP via email to background queue
         const template = otpTemplate(firstName, otp);
-        await emailQueue.add("sendOTP", { 
-            email, 
-            subject: template.subject, 
-            html: template.html 
+        await emailQueue.add("sendOTP", {
+            email,
+            subject: template.subject,
+            html: template.html
         });
 
         const { passwordHash: _1, otp: _2, otpExpires: _3, ...userRegistered } = user;
@@ -234,4 +235,61 @@ export const logoutUser = async (refreshToken) => {
     });
 
     return { message: "Logged out successfully" };
+};
+
+/**
+ * Handle Google Social login via Firebase ID token
+ */
+export const googleLogin = async (idToken) => {
+    // 1. Verify the ID token using Firebase Admin
+    let decodedToken;
+    try {
+        decodedToken = await admin.auth().verifyIdToken(idToken);
+    } catch {
+        throw new Error("Invalid or expired Google ID Token");
+    }
+
+    const { email, name, picture, uid } = decodedToken;
+
+    // 2. Check if user exists
+    let user = await prisma.user.findUnique({
+        where: { email }
+    });
+
+    if (!user) {
+        // 3. Auto-provision new user
+        const names = name ? name.split(" ") : ["Google", "User"];
+        user = await prisma.user.create({
+            data: {
+                email,
+                firstName: names[0],
+                lastName: names.slice(1).join(" ") || "User",
+                isVerified: true, // Social accounts are verified by default
+                profilePicture: picture,
+                socialProvider: "GOOGLE",
+                socialId: uid,
+                isActive: true
+            }
+        });
+    }
+
+    // 4. Update last login and issue tokens
+    const accessToken = generateAccessToken(user.id);
+    const refreshToken = generateRefreshToken(user.id);
+
+    const updatedUser = await prisma.user.update({
+        where: { id: user.id },
+        data: { lastLoginAt: new Date() }
+    });
+
+    await prisma.refreshToken.create({
+        data: {
+            userId: user.id,
+            token: refreshToken,
+            expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+        }
+    });
+
+    const { passwordHash: _unused, resetToken: _1, otp: _2, ...userSafe } = updatedUser;
+    return { user: userSafe, accessToken, refreshToken };
 };

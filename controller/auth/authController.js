@@ -153,3 +153,30 @@ export const logout = async (req, res) => {
         });
     }
 };
+
+/**
+ * Controller for Google Social Login
+ */
+export const googleSignIn = async (req, res) => {
+    try {
+        const { idToken } = req.body;
+        if (!idToken) {
+            return res.status(400).json({
+                success: false,
+                message: "Firebase ID Token is required"
+            });
+        }
+
+        const result = await authService.googleLogin(idToken);
+        res.status(200).json({
+            success: true,
+            data: result,
+            message: "Google login successful"
+        });
+    } catch (error) {
+        res.status(401).json({
+            success: false,
+            message: error.message
+        });
+    }
+};

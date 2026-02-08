@@ -1,23 +1,8 @@
-import admin from "firebase-admin";
-import dotenv from "dotenv";
+import admin from "./firebase.js";
 import prisma from "../prisma/client.js";
 import { createBreaker } from "./circuitBreaker.js";
 
-dotenv.config();
-
-// Placeholder for Firebase Service Account
-// In a real scenario, the user would provide this JSON or path to it
-const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT ? 
-    JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT) : null;
-
-if (serviceAccount) {
-    admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount)
-    });
-    console.log("Connected to firebase");
-} else {
-    console.warn("Firebase Service Account is missing. Push notifications will be simulated (logged to console).");
-}
+const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT;
 
 /**
  * Send a push notification to a specific user

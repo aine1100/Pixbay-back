@@ -5,7 +5,8 @@ import {
   verifyAccount,
   forgotPassword,
   resetUserPassword,
-  logout
+  logout,
+  googleSignIn
 } from "../../controller/auth/authController.js";
 import { protect } from "../../middleware/auth/authMiddleware.js";
 import { authRateLimiter } from "../../middleware/auth/rateLimiter.js";
@@ -192,5 +193,31 @@ router.post("/reset-password", authRateLimiter, resetUserPassword);
  *         description: Refresh token required
  */
 router.post("/logout", protect, logout);
+
+/**
+ * @swagger
+ * /auth/google:
+ *   post:
+ *     summary: Continue with Google (Social Login)
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - idToken
+ *             properties:
+ *               idToken:
+ *                 type: string
+ *                 description: Firebase ID token from Google Sign-In
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *       401:
+ *         description: Invalid Google ID token
+ */
+router.post("/google", authRateLimiter, googleSignIn);
 
 export default router;
