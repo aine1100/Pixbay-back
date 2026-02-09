@@ -3,6 +3,7 @@ import * as authService from "../../service/auth/auth.js";
 
 export const register = async (req, res) => {
     try {
+        console.log("[Backend] Received registration request:", req.body);
         const userData = req.body;
 
         if (!userData.password || !userData.firstName || !userData.lastName || !userData.email) {

@@ -1,9 +1,9 @@
+import "dotenv/config";
 import { Worker } from "bullmq";
-import dotenv from "dotenv";
 import { sendEmail } from "../utils/email.js";
 import { sendPushNotification } from "../utils/notifications.js";
 
-dotenv.config();
+// Connection for BullMQ
 
 const connection = {
     host: process.env.REDIS_HOST,
@@ -14,6 +14,8 @@ if (!connection.host || !connection.port) {
     console.error("FATAL: REDIS_HOST or REDIS_PORT is not defined in the environment.");
     process.exit(1);
 }
+
+console.log(`[Worker] Environment Loaded. EMAIL_HOST is: ${process.env.EMAIL_HOST ? 'Present' : 'MISSING'}`);
 
 // 1. Email Worker
 const emailWorker = new Worker("emailQueue", async (job) => {

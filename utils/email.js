@@ -22,6 +22,7 @@ const transporter = nodemailer.createTransport({
  * @param {string} html - Email body in HTML
  */
 const _sendEmail = async (to, subject, html) => {
+    console.log(`[Email Service] Attempting to send email to: ${to}`);
     const mailOptions = {
         from: process.env.EMAIL_FROM,
         to,

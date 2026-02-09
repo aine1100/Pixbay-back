@@ -1,6 +1,6 @@
+import "dotenv/config";
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
 import authRoutes from "./routes/auth/authRoutes.js";
 import userRoutes from "./routes/user/userRoutes.js";
 import creatorRoutes from "./routes/creator/creatorRoutes.js";
@@ -15,18 +15,13 @@ import { initSocket } from "./utils/socket.js";
 import http from "http";
 import { globalRateLimiter } from "./middleware/auth/rateLimiter.js";
 
-dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
 
-// Initialize Socket.io
 initSocket(server);
 
-// Swagger Documentation
 setupSwagger(app);
-
-// Middleware
 app.use(cors());
 app.use(express.json());
 app.use(globalRateLimiter);
@@ -42,7 +37,7 @@ app.use("/api/v1/chats", chatRoutes);
 app.use("/api/v1/notifications", notificationRoutes);
 app.use("/api/v1/admin", adminRoutes);
 
-const port = process.env.DEV_PORT || 3000;
+const port = process.env.DEV_PORT ;
 server.listen(port, () => {
     console.info(`Server running on port ${port}`);
 });

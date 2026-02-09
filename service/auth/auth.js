@@ -8,11 +8,13 @@ import {
 } from "../../utils/tokens.js";
 import { otpTemplate, passwordResetOTPTemplate } from "../../utils/emailTemplates.js";
 import { emailQueue } from "../../utils/queue.js";
+import { sendEmail } from "../../utils/email.js";
 
 /**
  * Register a new user and generate OTP for verification
  */
 export const registerUser = async (userData) => {
+    console.log("[Backend Service] Registering user with data:", userData);
     const { password, firstName, lastName, role, email } = userData;
 
     const existingUser = await prisma.user.findUnique({
@@ -45,13 +47,9 @@ export const registerUser = async (userData) => {
             }
         });
 
-        // Offload the OTP via email to background queue
+        // Send the OTP via email directly (synchronous for registration)
         const template = otpTemplate(firstName, otp);
-        await emailQueue.add("sendOTP", {
-            email,
-            subject: template.subject,
-            html: template.html
-        });
+        await sendEmail(email, template.subject, template.html);
 
         const { passwordHash: _1, otp: _2, otpExpires: _3, ...userRegistered } = user;
         return userRegistered;
@@ -165,13 +163,9 @@ export const requestPasswordReset = async (email) => {
             }
         });
 
-        // Send reset OTP via email using new template and queue
+        // Send reset OTP via email directly
         const template = passwordResetOTPTemplate(user.firstName, resetToken);
-        await emailQueue.add("sendPasswordReset", {
-            email,
-            subject: template.subject,
-            html: template.html
-        });
+        await sendEmail(email, template.subject, template.html);
 
         return { message: "Password reset OTP sent to your email" };
     } catch (error) {
