@@ -15,7 +15,7 @@ if (!connection.host || !connection.port) {
     process.exit(1);
 }
 
-console.log(`[Worker] Environment Loaded. EMAIL_HOST is: ${process.env.EMAIL_HOST ? 'Present' : 'MISSING'}`);
+console.log(`[Worker] Environment Loaded. EMAIL_HOST is: ${process.env.EMAIL_HOST ? "Present" : "MISSING"}`);
 
 // 1. Email Worker
 const emailWorker = new Worker("emailQueue", async (job) => {

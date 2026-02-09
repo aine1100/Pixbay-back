@@ -7,7 +7,6 @@ import {
     generateOTP
 } from "../../utils/tokens.js";
 import { otpTemplate, passwordResetOTPTemplate } from "../../utils/emailTemplates.js";
-import { emailQueue } from "../../utils/queue.js";
 import { sendEmail } from "../../utils/email.js";
 
 /**
