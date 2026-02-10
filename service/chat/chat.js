@@ -82,7 +82,7 @@ export const saveMessage = async (chatId, senderId, senderType, content, message
             await notifyUser(recipientId, {
                 type: "MESSAGE",
                 title: "New Message",
-                body: typeof content === "string" ? content : "You received a new file",
+                message: typeof content === "string" ? content : "You received a new file",
                 metadata: { chatId, type: "CHAT_MESSAGE" }
             });
         }

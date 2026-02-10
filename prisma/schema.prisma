@@ -169,6 +169,7 @@ model User {
   refreshTokens   RefreshToken[]
   jobs            Job[]          @relation("UserJobs")
   savedCreators   SavedCreator[] @relation("UserSavedCreators")
+  supportTickets  SupportTicket[]
 }
 
 model Creator {
@@ -448,4 +449,19 @@ model SavedCreator {
   createdAt DateTime @default(now())
 
   @@unique([userId, creatorId])
+}
+model SupportTicket {
+  id        String   @id @default(uuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  name      String?  // Required if guest
+  email     String?  // Required if guest
+  subject   String
+  message   String
+  status    String   @default("OPEN") // OPEN, IN_PROGRESS, RESOLVED
+  priority         String   @default("NORMAL") // LOW, NORMAL, HIGH, URGENT
+  adminNotified    Boolean  @default(false)
+  notificationError String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 }

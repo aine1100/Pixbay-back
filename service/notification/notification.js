@@ -8,20 +8,19 @@ import { notificationQueue } from "../../utils/queue.js";
 export const notifyUser = async (userId, data) => {
     const { type, title, message, metadata = {} } = data;
 
-    let notification;
-    try {
-        // 1. Save to Database (In-App)
-        notification = await prisma.notification.create({
-            data: {
-                userId,
-                type,
-                title,
-                message,
-                data: metadata
-            }
-        });
+    // 1. Save to Database (In-App) — this always persists
+    const notification = await prisma.notification.create({
+        data: {
+            userId,
+            type,
+            title,
+            message,
+            data: metadata
+        }
+    });
 
-        // 2. Offload Push Notification to background queue
+    // 2. Offload Push Notification to background queue (best-effort)
+    try {
         await notificationQueue.add("sendPush", {
             userId,
             payload: {
@@ -30,16 +29,12 @@ export const notifyUser = async (userId, data) => {
                 data: { ...metadata, notificationId: notification.id }
             }
         });
-
-        return notification;
     } catch (error) {
-        // ROLLBACK: If notification was saved but Push failed, remove it
-        if (notification?.id) {
-            await prisma.notification.delete({ where: { id: notification.id } }).catch(e => console.error("Notification rollback failed:", e));
-        }
-        console.error("Notification Service Error:", error);
-        throw error; // Propagate error for higher-level rollback (e.g., in saveMessage)
+        // Push failed but the in-app notification is already saved — don't rollback
+        console.warn("[Notification Service] Push notification queue failed (in-app notification saved):", error.message);
     }
+
+    return notification;
 };
 
 /**
@@ -54,6 +49,15 @@ export const getUserNotifications = async (userId, limit = 20, offset = 0, inclu
         orderBy: { createdAt: "desc" },
         take: limit,
         skip: offset
+    });
+};
+
+/**
+ * Get count of unread notifications for a user
+ */
+export const getUnreadCount = async (userId) => {
+    return await prisma.notification.count({
+        where: { userId, isRead: false, isArchived: false }
     });
 };
 

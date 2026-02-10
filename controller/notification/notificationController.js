@@ -3,14 +3,24 @@ import * as notificationService from "../../service/notification/notification.js
 export const getMyNotifications = async (req, res) => {
     try {
         const { limit, offset } = req.query;
-        const notifications = await notificationService.getUserNotifications(
-            req.user.id,
-            limit ? parseInt(limit) : 20,
-            offset ? parseInt(offset) : 0
-        );
+        const parsedLimit = limit ? parseInt(limit) : 20;
+        const parsedOffset = offset ? parseInt(offset) : 0;
+
+        const [notifications, unreadCount] = await Promise.all([
+            notificationService.getUserNotifications(
+                req.user.id,
+                parsedLimit,
+                parsedOffset
+            ),
+            notificationService.getUnreadCount(req.user.id)
+        ]);
+
         res.status(200).json({
             success: true,
-            data: notifications
+            data: {
+                notifications,
+                unreadCount
+            }
         });
     } catch (error) {
         res.status(400).json({
