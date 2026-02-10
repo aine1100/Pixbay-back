@@ -41,7 +41,7 @@ export const createTicket = async (ticketData) => {
         <p><strong>Subject:</strong> ${subject}</p>
         <hr />
         <p><strong>Message:</strong></p>
-        <p>${message.replace(/\n/g, '<br/>')}</p>
+        <p>${message.replace(/\n/g, "<br/>")}</p>
         <hr />
         <p>You can view and manage this ticket in the admin dashboard.</p>
     `;
@@ -54,7 +54,7 @@ export const createTicket = async (ticketData) => {
             html: emailHtml
         }, {
             attempts: 5,
-            backoff: { type: 'exponential', delay: 2000 }
+            backoff: { type: "exponential", delay: 2000 }
         });
     } catch (error) {
         console.error("[Support Service] Failed to queue admin notification email:", error.message);

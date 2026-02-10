@@ -28,7 +28,7 @@ console.log(`[Worker] Started.
 
 // 1. Email Worker
 const emailWorker = new Worker("emailQueue", async (job) => {
-    const { email, subject, html, ticketId, type } = job.data;
+    const { email, subject, html, ticketId, type: _type } = job.data;
     console.info(`[Worker] Processing Email to: ${email} ${ticketId ? `for Ticket: ${ticketId}` : ""}`);
     
     try {
