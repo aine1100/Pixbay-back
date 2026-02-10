@@ -28,6 +28,8 @@ COPY --from=builder /app/routes ./routes
 COPY --from=builder /app/service ./service
 COPY --from=builder /app/utils ./utils
 COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/workers ./workers
+COPY --from=builder /app/ecosystem.config.cjs ./
 
 # Expose the API port
 EXPOSE 3000

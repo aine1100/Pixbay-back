@@ -117,7 +117,7 @@ export const LoginUser = async (userData) => {
         throw new Error("Invalid password");
     }
 
-    const accessToken = generateAccessToken(user.id);
+    const accessToken = generateAccessToken(user);
     const refreshToken = generateRefreshToken(user.id);
 
     // Update lastLoginAt and create refresh token
@@ -267,7 +267,7 @@ export const googleLogin = async (idToken) => {
     }
 
     // 4. Update last login and issue tokens
-    const accessToken = generateAccessToken(user.id);
+    const accessToken = generateAccessToken(user);
     const refreshToken = generateRefreshToken(user.id);
 
     const updatedUser = await prisma.user.update({
@@ -285,4 +285,34 @@ export const googleLogin = async (idToken) => {
 
     const { passwordHash: _unused, resetToken: _1, otp: _2, ...userSafe } = updatedUser;
     return { user: userSafe, accessToken, refreshToken };
+};
+
+/**
+ * Refresh access token using a valid refresh token
+ */
+export const refreshAccessToken = async (refreshToken) => {
+    if (!refreshToken) {
+        throw new Error("Refresh token is required");
+    }
+
+    const tokenRecord = await prisma.refreshToken.findUnique({
+        where: { token: refreshToken },
+        include: { user: true }
+    });
+
+    if (!tokenRecord) {
+        throw new Error("Invalid refresh token");
+    }
+
+    if (tokenRecord.expiresAt < new Date()) {
+        await prisma.refreshToken.delete({ where: { id: tokenRecord.id } });
+        throw new Error("Refresh token has expired");
+    }
+
+    if (!tokenRecord.user.isActive) {
+        throw new Error("User account is inactive");
+    }
+
+    const accessToken = generateAccessToken(tokenRecord.user);
+    return { accessToken };
 };

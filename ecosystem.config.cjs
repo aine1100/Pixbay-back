@@ -17,7 +17,7 @@ module.exports = {
         },
         {
             name: "pixbay-worker",
-            script: "npm run worker",
+            script: "./workers/worker.js",
             watch: false,
             autorestart: true,
             max_memory_restart: "500M",

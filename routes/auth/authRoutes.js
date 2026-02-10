@@ -6,7 +6,8 @@ import {
   forgotPassword,
   resetUserPassword,
   logout,
-  googleSignIn
+  googleSignIn,
+  refresh
 } from "../../controller/auth/authController.js";
 import { protect } from "../../middleware/auth/authMiddleware.js";
 import { authRateLimiter } from "../../middleware/auth/rateLimiter.js";
@@ -219,5 +220,30 @@ router.post("/logout", protect, logout);
  *         description: Invalid Google ID token
  */
 router.post("/google", authRateLimiter, googleSignIn);
+
+/**
+ * @swagger
+ * /auth/refresh-token:
+ *   post:
+ *     summary: Refresh access token
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - refreshToken
+ *             properties:
+ *               refreshToken:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Token refreshed successfully
+ *       401:
+ *         description: Invalid or expired refresh token
+ */
+router.post("/refresh-token", refresh);
 
 export default router;

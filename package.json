@@ -14,7 +14,8 @@
     "pm2:logs": "pm2 logs",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "worker": "node workers/worker.js"
+    "worker": "node workers/worker.js",
+    "start:worker": "node workers/worker.js"
   },
   "keywords": [],
   "author": "",

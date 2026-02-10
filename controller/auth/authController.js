@@ -181,3 +181,22 @@ export const googleSignIn = async (req, res) => {
         });
     }
 };
+
+/**
+ * Controller to refresh access token
+ */
+export const refresh = async (req, res) => {
+    try {
+        const { refreshToken } = req.body;
+        const result = await authService.refreshAccessToken(refreshToken);
+        res.status(200).json({
+            success: true,
+            data: result
+        });
+    } catch (error) {
+        res.status(401).json({
+            success: false,
+            message: error.message
+        });
+    }
+};

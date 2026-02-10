@@ -147,9 +147,10 @@ export const changeRole = async (req, res) => {
  * Controller to get current user profile (me)
  */
 export const getMe = async (req, res) => {
+    const { passwordHash, ...userSafe } = req.user;
     res.status(200).json({
         success: true,
-        data: req.user
+        data: userSafe
     });
 };
 
