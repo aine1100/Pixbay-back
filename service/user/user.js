@@ -140,15 +140,28 @@ export const getSavedCreators = async (userId) => {
 /**
  * Get all active sessions for a user
  */
-export const getUserSessions = async (userId) => {
-    return await prisma.refreshToken.findMany({
-        where: {
-            userId,
-            isRevoked: false,
-            expiresAt: { gt: new Date() }
-        },
-        orderBy: { createdAt: "desc" }
-    });
+export const getUserSessions = async (userId, page = 1, limit = 5) => {
+    const skip = (page - 1) * limit;
+    const [sessions, total] = await Promise.all([
+        prisma.refreshToken.findMany({
+            where: {
+                userId,
+                isRevoked: false,
+                expiresAt: { gt: new Date() }
+            },
+            skip,
+            take: limit,
+            orderBy: { createdAt: "desc" }
+        }),
+        prisma.refreshToken.count({
+            where: {
+                userId,
+                isRevoked: false,
+                expiresAt: { gt: new Date() }
+            }
+        })
+    ]);
+    return { sessions, total, page, limit };
 };
 
 export const revokeUserSession = async (userId, sessionId) => {

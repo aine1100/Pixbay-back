@@ -238,10 +238,18 @@ export const getFavorites = async (req, res) => {
 export const getSessions = async (req, res) => {
     try {
         const userId = req.user.id;
-        const sessions = await userService.getUserSessions(userId);
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 5;
+        const result = await userService.getUserSessions(userId, page, limit);
         res.status(200).json({
             success: true,
-            data: sessions
+            data: result.sessions,
+            pagination: {
+                total: result.total,
+                page: result.page,
+                limit: result.limit,
+                totalPages: Math.ceil(result.total / result.limit)
+            }
         });
     } catch (error) {
         res.status(400).json({
