@@ -137,3 +137,33 @@ export const getSavedCreators = async (userId) => {
         ...s.creator
     }));
 };
+/**
+ * Get all active sessions for a user
+ */
+export const getUserSessions = async (userId) => {
+    return await prisma.refreshToken.findMany({
+        where: {
+            userId,
+            isRevoked: false,
+            expiresAt: { gt: new Date() }
+        },
+        orderBy: { createdAt: "desc" }
+    });
+};
+
+export const revokeUserSession = async (userId, sessionId) => {
+    const session = await prisma.refreshToken.findFirst({
+        where: { id: sessionId, userId }
+    });
+
+    if (!session) {
+        throw new Error("Session not found or doesn't belong to this user");
+    }
+
+    await prisma.refreshToken.update({
+        where: { id: sessionId },
+        data: { isRevoked: true }
+    });
+
+    return { message: "Session revoked successfully" };
+};

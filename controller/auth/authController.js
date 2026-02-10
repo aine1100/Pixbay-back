@@ -54,9 +54,6 @@ export const verifyAccount = async (req, res) => {
     }
 };
 
-/**
- * Controller for user login
- */
 export const login = async (req, res) => {
     try {
         const { email, password } = req.body;
@@ -66,7 +63,21 @@ export const login = async (req, res) => {
                 message: "Email and password are required"
             });
         }
-        const result = await authService.LoginUser(req.body);
+
+        const userAgent = req.get("User-Agent") || "";
+        const ipAddress = req.ip || req.connection.remoteAddress;
+        
+        // Simple device detection
+        let deviceInfo = "Desktop";
+        if (/mobile/i.test(userAgent)) deviceInfo = "Mobile Device";
+        if (/tablet/i.test(userAgent)) deviceInfo = "Tablet";
+
+        const result = await authService.LoginUser(req.body, {
+            ipAddress,
+            userAgent,
+            deviceInfo
+        });
+
         res.status(200).json({
             success: true,
             data: result,
@@ -155,9 +166,6 @@ export const logout = async (req, res) => {
     }
 };
 
-/**
- * Controller for Google Social Login
- */
 export const googleSignIn = async (req, res) => {
     try {
         const { idToken } = req.body;
@@ -168,7 +176,20 @@ export const googleSignIn = async (req, res) => {
             });
         }
 
-        const result = await authService.googleLogin(idToken);
+        const userAgent = req.get("User-Agent") || "";
+        const ipAddress = req.ip || req.connection.remoteAddress;
+        
+        // Simple device detection
+        let deviceInfo = "Desktop";
+        if (/mobile/i.test(userAgent)) deviceInfo = "Mobile Device";
+        if (/tablet/i.test(userAgent)) deviceInfo = "Tablet";
+
+        const result = await authService.googleLogin(idToken, {
+            ipAddress,
+            userAgent,
+            deviceInfo
+        });
+
         res.status(200).json({
             success: true,
             data: result,

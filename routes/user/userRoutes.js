@@ -9,9 +9,11 @@ import {
     changeRole,
     getMe,
     updateMe,
+    getSessions,
     updateFcmToken,
     toggleFavorite,
-    getFavorites
+    getFavorites,
+    revokeSession
 } from "../../controller/user/userController.js";
 import { protect, restrictTo } from "../../middleware/auth/authMiddleware.js";
 
@@ -66,6 +68,21 @@ router.get("/me", getMe);
  *         description: Profile updated
  */
 router.put("/me", updateMe);
+
+/**
+ * @swagger
+ * /users/me/sessions:
+ *   get:
+ *     summary: Get all active sessions for current user
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of active sessions
+ */
+router.get("/me/sessions", getSessions);
+router.delete("/me/sessions/:sessionId", revokeSession);
 
 /**
  * @swagger

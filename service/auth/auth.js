@@ -101,8 +101,9 @@ export const verifyOTP = async (email, otp) => {
 /**
  * Login user and issue access/refresh tokens
  */
-export const LoginUser = async (userData) => {
+export const LoginUser = async (userData, sessionInfo = {}) => {
     const { email, password } = userData;
+    const { ipAddress, userAgent, deviceInfo } = sessionInfo;
 
     const user = await prisma.user.findUnique({
         where: { email }
@@ -130,6 +131,9 @@ export const LoginUser = async (userData) => {
         data: {
             userId: user.id,
             token: refreshToken,
+            ipAddress: ipAddress || null,
+            userAgent: userAgent || null,
+            deviceInfo: deviceInfo || "Unknown Device",
             expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days from now
         }
     });
@@ -233,7 +237,7 @@ export const logoutUser = async (refreshToken) => {
 /**
  * Handle Google Social login via Firebase ID token
  */
-export const googleLogin = async (idToken) => {
+export const googleLogin = async (idToken, sessionInfo = {}) => {
     // 1. Verify the ID token using Firebase Admin
     let decodedToken;
     try {
@@ -243,6 +247,7 @@ export const googleLogin = async (idToken) => {
     }
 
     const { email, name, picture, uid } = decodedToken;
+    const { ipAddress, userAgent, deviceInfo } = sessionInfo;
 
     // 2. Check if user exists
     let user = await prisma.user.findUnique({
@@ -279,6 +284,9 @@ export const googleLogin = async (idToken) => {
         data: {
             userId: user.id,
             token: refreshToken,
+            ipAddress: ipAddress || null,
+            userAgent: userAgent || null,
+            deviceInfo: deviceInfo || "Unknown Device",
             expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
         }
     });

@@ -231,3 +231,42 @@ export const getFavorites = async (req, res) => {
         });
     }
 };
+
+/**
+ * Controller to get all active sessions for current user (me)
+ */
+export const getSessions = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const sessions = await userService.getUserSessions(userId);
+        res.status(200).json({
+            success: true,
+            data: sessions
+        });
+    } catch (error) {
+        res.status(400).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+
+/**
+ * Controller to revoke a specific session
+ */
+export const revokeSession = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { sessionId } = req.params;
+        const result = await userService.revokeUserSession(userId, sessionId);
+        res.status(200).json({
+            success: true,
+            message: result.message
+        });
+    } catch (error) {
+        res.status(400).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
