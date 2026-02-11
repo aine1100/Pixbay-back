@@ -106,7 +106,8 @@ export const LoginUser = async (userData, sessionInfo = {}) => {
     const { ipAddress, userAgent, deviceInfo } = sessionInfo;
 
     const user = await prisma.user.findUnique({
-        where: { email }
+        where: { email },
+        include: { creatorProfile: true }
     });
 
     if (!user) {
@@ -124,7 +125,8 @@ export const LoginUser = async (userData, sessionInfo = {}) => {
     // Update lastLoginAt and create refresh token
     const updatedUser = await prisma.user.update({
         where: { id: user.id },
-        data: { lastLoginAt: new Date() }
+        data: { lastLoginAt: new Date() },
+        include: { creatorProfile: true }
     });
 
     await prisma.refreshToken.create({
@@ -251,7 +253,8 @@ export const googleLogin = async (idToken, sessionInfo = {}) => {
 
     // 2. Check if user exists
     let user = await prisma.user.findUnique({
-        where: { email }
+        where: { email },
+        include: { creatorProfile: true }
     });
 
     if (!user) {
@@ -277,7 +280,8 @@ export const googleLogin = async (idToken, sessionInfo = {}) => {
 
     const updatedUser = await prisma.user.update({
         where: { id: user.id },
-        data: { lastLoginAt: new Date() }
+        data: { lastLoginAt: new Date() },
+        include: { creatorProfile: true }
     });
 
     await prisma.refreshToken.create({

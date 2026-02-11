@@ -3,7 +3,8 @@ import multer from "multer";
 import {
     activateIdentity,
     uploadPortfolio,
-    updateEquipment
+    updateEquipment,
+    updateProfile
 } from "../../controller/creator/creatorController.js";
 import {
     updatePricing,
@@ -11,7 +12,7 @@ import {
     browseCreators
 } from "../../controller/creator/serviceController.js";
 import { protect } from "../../middleware/auth/authMiddleware.js";
-import { updateProfile } from "../../controller/user/userController.js";
+
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
