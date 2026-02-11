@@ -54,7 +54,6 @@ export const initSocket = (server) => {
             }
         });
 
-        // Mark messages as read
         socket.on("message_read", async (data) => {
             const { chatId } = data;
             try {

@@ -1,16 +1,17 @@
 import express from "express";
 import multer from "multer";
-import { 
-    activateIdentity, 
-    uploadPortfolio, 
-    updateEquipment 
+import {
+    activateIdentity,
+    uploadPortfolio,
+    updateEquipment
 } from "../../controller/creator/creatorController.js";
-import { 
-    updatePricing, 
-    getProfile, 
-    browseCreators 
+import {
+    updatePricing,
+    getProfile,
+    browseCreators
 } from "../../controller/creator/serviceController.js";
 import { protect } from "../../middleware/auth/authMiddleware.js";
+import { updateProfile } from "../../controller/user/userController.js";
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -114,8 +115,8 @@ router.put("/pricing", updatePricing);
  *         description: Identity documents submitted
  */
 router.post(
-    "/activate/step1", 
-    upload.fields([{ name: "idFront", maxCount: 1 }, { name: "idBack", maxCount: 1 }]), 
+    "/activate/step1",
+    upload.fields([{ name: "idFront", maxCount: 1 }, { name: "idBack", maxCount: 1 }]),
     activateIdentity
 );
 
@@ -147,8 +148,8 @@ router.post(
  *         description: Portfolio updated
  */
 router.post(
-    "/activate/step2", 
-    upload.fields([{ name: "portfolio", maxCount: 5 }]), 
+    "/activate/step2",
+    upload.fields([{ name: "portfolio", maxCount: 5 }]),
     uploadPortfolio
 );
 
@@ -175,5 +176,42 @@ router.post(
  *         description: Equipment list updated
  */
 router.post("/activate/step3", updateEquipment);
+
+/**
+ * @swagger
+ * /creators/profile:
+ *   patch:
+ *     summary: Update complete creator profile
+ *     tags: [Creator Portal]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               businessName:
+ *                 type: string
+ *               bio:
+ *                 type: string
+ *               creatorType:
+ *                 type: string
+ *               baseCity:
+ *                 type: string
+ *               country:
+ *                 type: string
+ *               pricing:
+ *                 type: object
+ *               specializations:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *     responses:
+ *       200:
+ *         description: Profile updated
+ */
+router.patch("/profile", updateProfile);
 
 export default router;

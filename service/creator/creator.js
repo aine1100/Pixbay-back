@@ -98,3 +98,49 @@ export const submitEquipment = async (userId, equipmentList) => {
 
     return { message: "Equipment list updated successfully", equipment: updatedCreator.equipment };
 };
+
+/**
+ * Update general creator profile details (Bio, Business Name, Location, etc.)
+ * @param {string} userId
+ * @param {Object} data - fields to update
+ */
+export const updateCreatorProfile = async (userId, data) => {
+    const creator = await prisma.creator.findUnique({
+        where: { userId }
+    });
+
+    if (!creator) {
+        throw new Error("Creator profile not found");
+    }
+
+    // Extract valid fields to avoid overwriting critical ones like `verificationStatus` accidentally
+    // unless this method is strictly controlled.
+    const { 
+        businessName, 
+        bio, 
+        creatorType, 
+        baseCity, 
+        country, 
+        portfolioLinks,
+        pricing,
+        availability,
+        specializations
+    } = data;
+
+    const updatedCreator = await prisma.creator.update({
+        where: { userId },
+        data: {
+            ...(businessName !== undefined && { businessName }),
+            ...(bio !== undefined && { bio }),
+            ...(creatorType !== undefined && { creatorType }),
+            ...(baseCity !== undefined && { baseCity }),
+            ...(country !== undefined && { country }),
+            ...(portfolioLinks !== undefined && { portfolioLinks }),
+            ...(pricing !== undefined && { pricing }),
+            ...(availability !== undefined && { availability }),
+            ...(specializations !== undefined && { specializations })
+        }
+    });
+
+    return { message: "Profile updated successfully", creator: updatedCreator };
+};

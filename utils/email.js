@@ -2,13 +2,12 @@ import nodemailer from "nodemailer";
 import { createBreaker } from "./circuitBreaker.js";
 
 /**
- * Create reusable transporter object using AhaSend SMTP
- * Based on: https://ahasend.com/docs/smtp/nodejs
+ * Create reusable transporter object using SMTP
  */
 const transporter = nodemailer.createTransport({
-    host: process.env.EMAIL_HOST, // 'send.ahasend.com'
-    port: 587,
-    requireTLS: true, // Force TLS (STARTTLS)
+    host: process.env.EMAIL_HOST,
+    port: parseInt(process.env.EMAIL_PORT) || 587,
+    secure: false, // true for 465, false for other ports
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
@@ -16,7 +15,7 @@ const transporter = nodemailer.createTransport({
 });
 
 /**
- * Utility to send emails via AhaSend
+ * Utility to send emails
  * @param {string} to - Recipient email address
  * @param {string} subject - Email subject
  * @param {string} html - Email body in HTML
@@ -36,6 +35,6 @@ const _sendEmail = async (to, subject, html) => {
     return info;
 };
 
-const emailBreaker = createBreaker(_sendEmail, "Email Service (AhaSend)");
+const emailBreaker = createBreaker(_sendEmail, "Email Service (SMTP)");
 
 export const sendEmail = (to, subject, html) => emailBreaker.fire(to, subject, html);

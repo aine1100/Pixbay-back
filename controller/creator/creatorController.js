@@ -130,3 +130,24 @@ export const updateEquipment = async (req, res) => {
         });
     }
 };
+
+/**
+ * Controller for General Profile Update
+ */
+export const updateProfile = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const result = await creatorService.updateCreatorProfile(userId, req.body);
+
+        res.status(200).json({
+            success: true,
+            message: result.message,
+            data: result.creator
+        });
+    } catch (error) {
+        res.status(400).json({
+            success: false,
+            message: error.message
+        });
+    }
+};

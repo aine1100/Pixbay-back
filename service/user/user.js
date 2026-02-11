@@ -2,7 +2,14 @@ import prisma from "../../prisma/client.js";
 
 export const getUserProfile = async (userId) => {
     const user = await prisma.user.findUnique({
-        where: { id: userId }
+        where: { id: userId },
+        include: {
+            creatorProfile: {
+                include: {
+                    portfolioMedia: true
+                }
+            }
+        }
     });
     if (!user) {
         throw new Error("User not found");
@@ -17,7 +24,7 @@ export const updateUserProfile = async (userId, userData) => {
 
     });
     if (!user) {
-        throw new Error("no user found wiht this id");
+        throw new Error("no user found with this id");
     }
     const updatedUser = await prisma.user.update({
         where: { id: userId },
