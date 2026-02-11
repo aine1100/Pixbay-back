@@ -150,7 +150,7 @@ router.post(
  */
 router.post(
     "/activate/step2",
-    upload.fields([{ name: "portfolio", maxCount: 5 }]),
+    upload.fields([{ name: "portfolio", maxCount: 10 }]),
     uploadPortfolio
 );
 

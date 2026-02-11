@@ -191,7 +191,7 @@ export const getPlatformSummary = async () => {
         disputes,
         financials: {
             totalRevenue: transactionStats._sum.amount || 0,
-            currency: "KES"
+            currency: "RWF"
         },
         timestamp: new Date()
     };

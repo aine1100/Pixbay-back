@@ -38,9 +38,23 @@ export const getPublicProfile = async (creatorIdOrUserId) => {
                 select: {
                     firstName: true,
                     lastName: true,
+                    email: true,
                     profilePicture: true,
                     city: true,
-                    country: true
+                    country: true,
+                    reviewsReceived: {
+                        include: {
+                            reviewer: {
+                                select: {
+                                    firstName: true,
+                                    lastName: true,
+                                    profilePicture: true,
+                                    city: true,
+                                    country: true
+                                }
+                            }
+                        }
+                    }
                 }
             },
             portfolioMedia: true,

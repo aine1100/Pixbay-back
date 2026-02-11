@@ -59,13 +59,22 @@ export const uploadPortfolio = async (req, res) => {
     const uploadedPaths = [];
     try {
         const userId = req.user.id;
-        const { links } = req.body; // Array of external links
+        const { links, title, explanation } = req.body; // Array of external links + project info
         const items = [];
+        const projectId = `project_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
 
         // Add links if provided
         if (links && Array.isArray(links)) {
             links.forEach(link => {
-                items.push({ type: "LINK", url: link });
+                items.push({ 
+                    type: "LINK", 
+                    url: link, 
+                    metadata: { 
+                        title: title || "External Link", 
+                        description: explanation || "View external work",
+                        projectId
+                    } 
+                });
             });
         }
 
@@ -78,7 +87,16 @@ export const uploadPortfolio = async (req, res) => {
                 const path = `portfolio/${userId}_${Date.now()}_${file.originalname}`;
                 const url = await uploadFile(path, file.buffer, undefined, { contentType: file.mimetype });
                 uploadedPaths.push(path);
-                items.push({ type, url, metadata: { originalName: file.originalname } });
+                items.push({ 
+                    type, 
+                    url, 
+                    metadata: { 
+                        originalName: file.originalname,
+                        title: title || "Work Sample",
+                        description: explanation || "Creative showcase item",
+                        projectId
+                    } 
+                });
             }));
         }
 
