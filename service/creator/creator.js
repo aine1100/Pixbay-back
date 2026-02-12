@@ -115,12 +115,12 @@ export const updateCreatorProfile = async (userId, data) => {
 
     // Extract valid fields to avoid overwriting critical ones like `verificationStatus` accidentally
     // unless this method is strictly controlled.
-    const { 
-        businessName, 
-        bio, 
-        creatorType, 
-        baseCity, 
-        country, 
+    const {
+        businessName,
+        bio,
+        creatorType,
+        baseCity,
+        country,
         portfolioLinks,
         pricing,
         availability,
@@ -143,4 +143,41 @@ export const updateCreatorProfile = async (userId, data) => {
     });
 
     return { message: "Profile updated successfully", creator: updatedCreator };
+};
+
+/**
+ * Get all reviews for a creator
+ * @param {string} userId - ID of the user (creator)
+ */
+export const getCreatorReviews = async (userId) => {
+    const creator = await prisma.creator.findUnique({
+        where: { userId }
+    });
+
+    if (!creator) {
+        throw new Error("Creator profile not found");
+    }
+
+    const reviews = await prisma.review.findMany({
+        where: { revieweeId: userId },
+        include: {
+            reviewer: {
+                select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                    profilePicture: true
+                }
+            },
+            booking: {
+                select: {
+                    bookingNumber: true,
+                    category: true
+                }
+            }
+        },
+        orderBy: { createdAt: "desc" }
+    });
+
+    return reviews;
 };

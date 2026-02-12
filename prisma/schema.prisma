@@ -169,6 +169,8 @@ model User {
   refreshTokens   RefreshToken[]
   jobs            Job[]          @relation("UserJobs")
   savedCreators   SavedCreator[] @relation("UserSavedCreators")
+  chatsAsUser1    Chat[]         @relation("User1Chats")
+  chatsAsUser2    Chat[]         @relation("User2Chats")
   supportTickets  SupportTicket[]
 }
 
@@ -327,8 +329,12 @@ model Transaction {
 
 model Chat {
   id            String    @id @default(uuid())
-  bookingId     String    @unique
-  booking       Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  bookingId     String?   @unique
+  booking       Booking?  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  user1Id       String
+  user1         User      @relation("User1Chats", fields: [user1Id], references: [id])
+  user2Id       String
+  user2         User      @relation("User2Chats", fields: [user2Id], references: [id])
   lastMessage   Json?
   unreadCount   Json?     // { client: number, creator: number }
   isActive      Boolean   @default(true)
@@ -336,6 +342,8 @@ model Chat {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   messages      Message[]
+
+  @@unique([user1Id, user2Id])
 }
 
 model Message {

@@ -1,14 +1,17 @@
 import express from "express";
+import multer from "multer";
 import {
     getMessages,
     listChats,
     initiateChat,
     markAsRead,
-    totalUnread
+    totalUnread,
+    uploadDocument
 } from "../../controller/chat/chatController.js";
 import { protect } from "../../middleware/auth/authMiddleware.js";
 
 const router = express.Router();
+const upload = multer({ storage: multer.memoryStorage() });
 
 router.use(protect);
 
@@ -90,5 +93,29 @@ router.get("/:chatId/messages", getMessages);
  *         required: true
  */
 router.patch("/:chatId/read", markAsRead);
+
+/**
+ * @swagger
+ * /chats/{chatId}/upload:
+ *   post:
+ *     summary: Upload a document/image to a chat
+ *     tags: [Chat]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: chatId
+ *         required: true
+ *     requestBody:
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ */
+router.post("/:chatId/upload", upload.single("attachment"), uploadDocument);
 
 export default router;

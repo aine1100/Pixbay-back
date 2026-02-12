@@ -15,7 +15,8 @@ export const getChatMessages = async (chatId, limit = 50, offset = 0) => {
                 select: {
                     firstName: true,
                     lastName: true,
-                    profilePicture: true
+                    profilePicture: true,
+                    role: true
                 }
             }
         }
@@ -41,26 +42,19 @@ export const saveMessage = async (chatId, senderId, senderType, content, message
 
         // 2. Update Chat's last message and increment unread count for the other person
         const chatData = await prisma.chat.findUnique({
-            where: { id: chatId },
-            include: {
-                booking: {
-                    select: {
-                        clientId: true,
-                        creator: { select: { userId: true } }
-                    }
-                }
-            }
+            where: { id: chatId }
         });
 
         if (chatData) {
-            const recipientType = senderId === chatData.booking.clientId ? "CREATOR" : "CLIENT";
+            const recipientId = senderId === chatData.user1Id ? chatData.user2Id : chatData.user1Id;
             const currentUnread = (chatData.unreadCount || { client: 0, creator: 0 });
 
-            if (recipientType === "CREATOR") {
-                currentUnread.creator += 1;
-            } else {
-                currentUnread.client += 1;
+            // We still use 'client' and 'creator' in unreadCount for backward compatibility with UI if needed,
+            // but let's make it more generic: { [userId]: count }
+            if (!currentUnread[recipientId]) {
+                currentUnread[recipientId] = 0;
             }
+            currentUnread[recipientId] += 1;
 
             await prisma.chat.update({
                 where: { id: chatId },
@@ -68,7 +62,8 @@ export const saveMessage = async (chatId, senderId, senderType, content, message
                     lastMessage: {
                         content: content,
                         senderId: senderId,
-                        sentAt: new Date()
+                        sentAt: new Date(),
+                        messageType: messageType
                     },
                     unreadCount: currentUnread,
                     updatedAt: new Date()
@@ -76,44 +71,52 @@ export const saveMessage = async (chatId, senderId, senderType, content, message
             });
 
             // 3. Trigger Push Notification to recipient
-            const recipientId = senderId === chatData.booking.clientId ?
-                chatData.booking.creator.userId : chatData.booking.clientId;
-
             await notifyUser(recipientId, {
                 type: "MESSAGE",
                 title: "New Message",
-                message: typeof content === "string" ? content : "You received a new file",
+                message: messageType === "TEXT" ? (typeof content === "string" ? content : "New message") : `Sent a ${messageType.toLowerCase()}`,
                 metadata: { chatId, type: "CHAT_MESSAGE" }
             });
         }
 
         return message;
     } catch (error) {
-        // ROLLBACK: If message was saved but subsequent steps failed
         if (message?.id) {
             await prisma.message.delete({ where: { id: message.id } }).catch(() => { });
-            // Note: We don't rollback the unreadCount increment here to avoid complex state management,
-            // but the message deletion ensures it doesn't appear in history.
-            // Ideally, the Chat update would also be reversed, but manual rollback is tricky.
-            // However, the user's primary concern is "don't make that thing to be saved", usually referring to the main record.
         }
         throw error;
     }
 };
 
 /**
- * Get or Create Chat for a booking
+ * Get or Create Chat for a booking or between two users
  */
-export const getOrCreateChat = async (bookingId) => {
-    let chat = await prisma.chat.findUnique({
-        where: { bookingId }
+export const getOrCreateChat = async (userIds, bookingId = null) => {
+    if (!Array.isArray(userIds) || userIds.length !== 2) {
+        throw new Error("Chat requires exactly 2 participants");
+    }
+
+    // Sort to ensure uniqueness (user1Id < user2Id)
+    const [u1, u2] = [...userIds].sort();
+
+    let chat = await prisma.chat.findFirst({
+        where: {
+            user1Id: u1,
+            user2Id: u2,
+            bookingId: bookingId // If bookingId is provided, we might want a specific chat for it, 
+                                // but the prompt says "enable user to talk with different people",
+                                // implying general chat. For now, 1:1 general chat is unique per pair.
+        }
     });
 
     if (!chat) {
         chat = await prisma.chat.create({
             data: {
+                user1Id: u1,
+                user2Id: u2,
                 bookingId,
-                isActive: true
+                isActive: true,
+                unreadCount: { [u1]: 0, [u2]: 0 }
             }
         });
     }
@@ -127,36 +130,36 @@ export const getOrCreateChat = async (bookingId) => {
 export const getUserChats = async (userId) => {
     const chats = await prisma.chat.findMany({
         where: {
-            booking: {
-                OR: [
-                    { clientId: userId },
-                    { creator: { userId } }
-                ]
-            }
+            OR: [
+                { user1Id: userId },
+                { user2Id: userId }
+            ]
         },
         include: {
+            user1: { select: { id: true, firstName: true, lastName: true, profilePicture: true, role: true } },
+            user2: { select: { id: true, firstName: true, lastName: true, profilePicture: true, role: true } },
             booking: {
-                include: {
-                    client: { select: { id: true, firstName: true, lastName: true, profilePicture: true } },
-                    creator: { include: { user: { select: { id: true, firstName: true, lastName: true, profilePicture: true } } } }
+                select: {
+                    id: true,
+                    bookingNumber: true,
+                    status: true
                 }
             }
         },
         orderBy: { updatedAt: "desc" }
     });
 
-    // Format for easier consumption by frontend
     return chats.map(chat => {
-        const isClient = chat.booking.clientId === userId;
-        const otherUser = isClient ? chat.booking.creator.user : chat.booking.client;
-        const unreadCount = chat.unreadCount || { client: 0, creator: 0 };
+        const otherUser = chat.user1Id === userId ? chat.user2 : chat.user1;
+        const unreadCount = (chat.unreadCount || {})[userId] || 0;
 
         return {
             id: chat.id,
             bookingId: chat.bookingId,
+            booking: chat.booking,
             otherUser,
             lastMessage: chat.lastMessage,
-            unreadCount: isClient ? unreadCount.client : unreadCount.creator,
+            unreadCount,
             updatedAt: chat.updatedAt
         };
     });
@@ -167,20 +170,13 @@ export const getUserChats = async (userId) => {
  */
 export const markChatAsRead = async (chatId, userId) => {
     const chat = await prisma.chat.findUnique({
-        where: { id: chatId },
-        include: { booking: true }
+        where: { id: chatId }
     });
 
     if (!chat) throw new Error("Chat not found");
 
-    const isClient = chat.booking.clientId === userId;
-    const currentUnread = chat.unreadCount || { client: 0, creator: 0 };
-
-    if (isClient) {
-        currentUnread.client = 0;
-    } else {
-        currentUnread.creator = 0;
-    }
+    const currentUnread = chat.unreadCount || {};
+    currentUnread[userId] = 0;
 
     // 1. Reset chat unread count
     await prisma.chat.update({
@@ -210,25 +206,19 @@ export const markChatAsRead = async (chatId, userId) => {
 export const getTotalUnreadCount = async (userId) => {
     const chats = await prisma.chat.findMany({
         where: {
-            isActive: true, // Only count active chats
-            booking: {
-                OR: [
-                    { clientId: userId },
-                    { creator: { userId } }
-                ]
-            }
+            isActive: true,
+            OR: [
+                { user1Id: userId },
+                { user2Id: userId }
+            ]
         },
         select: {
-            unreadCount: true,
-            booking: {
-                select: { clientId: true }
-            }
+            unreadCount: true
         }
     });
 
     return chats.reduce((total, chat) => {
-        const isClient = chat.booking.clientId === userId;
-        const count = chat.unreadCount || { client: 0, creator: 0 };
-        return total + (isClient ? count.client : count.creator);
+        const count = (chat.unreadCount || {})[userId] || 0;
+        return total + count;
     }, 0);
 };

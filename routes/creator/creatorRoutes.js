@@ -4,7 +4,8 @@ import {
     activateIdentity,
     uploadPortfolio,
     updateEquipment,
-    updateProfile
+    updateProfile,
+    getReviews
 } from "../../controller/creator/creatorController.js";
 import {
     updatePricing,
@@ -213,6 +214,18 @@ router.post("/activate/step3", updateEquipment);
  *       200:
  *         description: Profile updated
  */
-router.patch("/profile", updateProfile);
+/**
+ * @swagger
+ * /creators/reviews:
+ *   get:
+ *     summary: Get all reviews for the current creator
+ *     tags: [Creator Portal]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of reviews
+ */
+router.get("/reviews", getReviews);
 
 export default router;

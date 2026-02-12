@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 import * as chatService from "../service/chat/chat.js";
 
 let io;
+const onlineUsers = new Map(); // userId -> Set<socketId>
 
 export const initSocket = (server) => {
     io = new Server(server, {
@@ -25,12 +26,30 @@ export const initSocket = (server) => {
     });
 
     io.on("connection", (socket) => {
-        console.log(`User connected: ${socket.user.id}`);
+        const userId = socket.user.id;
+        console.log(`User connected: ${userId}`);
+
+        // Track online presence
+        if (!onlineUsers.has(userId)) {
+            onlineUsers.set(userId, new Set());
+        }
+        onlineUsers.get(userId).add(socket.id);
+
+        // Broadcast that this user is online
+        socket.broadcast.emit("user_online", { userId });
+
+        // Send current online users list to the newly connected client
+        socket.emit("online_users", Array.from(onlineUsers.keys()));
+
+        // Client can request online users list at any time
+        socket.on("get_online_users", () => {
+            socket.emit("online_users", Array.from(onlineUsers.keys()));
+        });
 
         // Join specific chat room
         socket.on("join_chat", (chatId) => {
             socket.join(`chat_${chatId}`);
-            console.log(`User ${socket.user.id} joined room chat_${chatId}`);
+            console.log(`User ${userId} joined room chat_${chatId}`);
         });
 
         // Handle sending messages
@@ -41,7 +60,7 @@ export const initSocket = (server) => {
                 // Save to database
                 const savedMsg = await chatService.saveMessage(
                     chatId,
-                    socket.user.id,
+                    userId,
                     senderType,
                     content
                 );
@@ -57,10 +76,10 @@ export const initSocket = (server) => {
         socket.on("message_read", async (data) => {
             const { chatId } = data;
             try {
-                await chatService.markChatAsRead(chatId, socket.user.id);
+                await chatService.markChatAsRead(chatId, userId);
                 socket.to(`chat_${chatId}`).emit("messages_marked_read", { 
                     chatId, 
-                    userId: socket.user.id 
+                    userId 
                 });
             } catch (error) {
                 console.error("Socket mark read error:", error);
@@ -71,7 +90,7 @@ export const initSocket = (server) => {
         socket.on("typing", (data) => {
             const { chatId } = data;
             socket.to(`chat_${chatId}`).emit("user_typing", {
-                userId: socket.user.id,
+                userId,
                 chatId
             });
         });
@@ -79,13 +98,24 @@ export const initSocket = (server) => {
         socket.on("stop_typing", (data) => {
             const { chatId } = data;
             socket.to(`chat_${chatId}`).emit("user_stop_typing", {
-                userId: socket.user.id,
+                userId,
                 chatId
             });
         });
 
         socket.on("disconnect", () => {
-            console.log(`User disconnected: ${socket.user.id}`);
+            console.log(`User disconnected: ${userId}`);
+
+            // Remove this socket from the user's set
+            const sockets = onlineUsers.get(userId);
+            if (sockets) {
+                sockets.delete(socket.id);
+                if (sockets.size === 0) {
+                    onlineUsers.delete(userId);
+                    // Only broadcast offline if no more connections
+                    socket.broadcast.emit("user_offline", { userId });
+                }
+            }
         });
     });
 
@@ -96,3 +126,5 @@ export const getIo = () => {
     if (!io) throw new Error("Socket.io not initialized");
     return io;
 };
+
+export const getOnlineUsers = () => Array.from(onlineUsers.keys());

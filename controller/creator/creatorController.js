@@ -169,3 +169,23 @@ export const updateProfile = async (req, res) => {
         });
     }
 };
+
+/**
+ * Controller to fetch all reviews for a creator
+ */
+export const getReviews = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const reviews = await creatorService.getCreatorReviews(userId);
+
+        res.status(200).json({
+            success: true,
+            data: reviews
+        });
+    } catch (error) {
+        res.status(400).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
