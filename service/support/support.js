@@ -1,5 +1,5 @@
 import prisma from "../../prisma/client.js";
-import { emailQueue } from "../../utils/queue.js";
+import { sendEmail } from "../../utils/email.js";
 import { notifyUser } from "../notification/notification.js";
 
 /**
@@ -28,7 +28,7 @@ export const createTicket = async (ticketData) => {
         }
     });
 
-    // Notify Admin via Email (Queued for Worker)
+    // Notify Admin via Email (Sent Directly)
     const adminEmail = process.env.EMAIL_USER;
     const senderName = ticket.user ? `${ticket.user.firstName} ${ticket.user.lastName}` : ticket.name || "Guest";
     const senderEmail = ticket.user ? ticket.user.email : ticket.email;
@@ -47,17 +47,9 @@ export const createTicket = async (ticketData) => {
     `;
 
     try {
-        await emailQueue.add("support-ticket-notification", {
-            ticketId: ticket.id,
-            email: adminEmail,
-            subject: emailSubject,
-            html: emailHtml
-        }, {
-            attempts: 5,
-            backoff: { type: "exponential", delay: 2000 }
-        });
+        await sendEmail(adminEmail, emailSubject, emailHtml);
     } catch (error) {
-        console.error("[Support Service] Failed to queue admin notification email:", error.message);
+        console.error("[Support Service] Failed to send admin notification email:", error.message);
     }
 
     // Create an in-app notification for the user (if logged in)

@@ -1,15 +1,18 @@
 import express from "express";
+import multer from "multer";
 import {
     create,
     list,
     getOne,
     updateStatus,
     remove,
-    checkIn
+    checkIn,
+    uploadDelivery
 } from "../../controller/booking/bookingController.js";
 import { protect } from "../../middleware/auth/authMiddleware.js";
 
 const router = express.Router();
+const upload = multer({ storage: multer.memoryStorage() });
 
 // All booking routes are protected
 router.use(protect);
@@ -175,5 +178,40 @@ router.delete("/:id", remove);
  *         description: Check-in successful
  */
 router.post("/:id/check-in", checkIn);
+
+/**
+ * @swagger
+ * /bookings/{id}/delivery:
+ *   post:
+ *     summary: Upload delivery media for a booking
+ *     tags: [Bookings]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               delivery:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: binary
+ *               links:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *     responses:
+ *       200:
+ *         description: Media uploaded successfully
+ */
+router.post("/:id/delivery", upload.fields([{ name: "delivery", maxCount: 10 }]), uploadDelivery);
 
 export default router;

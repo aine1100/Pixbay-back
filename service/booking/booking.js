@@ -250,3 +250,46 @@ export const registerCheckIn = async (bookingId, userId, sessionNumber, location
 
     return updatedSession;
 };
+
+/**
+ * Upload delivery media for a booking
+ * @param {string} bookingId
+ * @param {string} userId
+ * @param {Array} mediaItems - Array of { type, url, metadata }
+ */
+export const uploadBookingMedia = async (bookingId, userId, mediaItems) => {
+    // 1. Verify that the user is the creator for this booking
+    const booking = await prisma.booking.findFirst({
+        where: {
+            id: bookingId,
+            creator: { userId }
+        }
+    });
+
+    if (!booking) {
+        throw new Error("Booking not found or unauthorized. Only the assigned creator can upload delivery media.");
+    }
+
+    // 2. Append new media items to the existing delivery
+    const currentDelivery = booking.delivery || { items: [] };
+    const updatedItems = [
+        ...(currentDelivery.items || []),
+        ...mediaItems.map(item => ({
+            ...item,
+            uploadedAt: new Date()
+        }))
+    ];
+
+    // 3. Update the booking
+    const updatedBooking = await prisma.booking.update({
+        where: { id: bookingId },
+        data: {
+            delivery: {
+                ...currentDelivery,
+                items: updatedItems
+            }
+        }
+    });
+
+    return updatedBooking;
+};

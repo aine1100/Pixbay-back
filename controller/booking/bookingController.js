@@ -1,4 +1,5 @@
 import * as bookingService from "../../service/booking/booking.js";
+import { uploadFile, deleteFiles } from "../../utils/supabase.js";
 
 export const create = async (req, res) => {
     try {
@@ -100,6 +101,80 @@ export const checkIn = async (req, res) => {
             data: session
         });
     } catch (error) {
+        res.status(400).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+
+/**
+ * Handle delivery media uploads for a booking
+ */
+
+export const uploadDelivery = async (req, res) => {
+    const uploadedPaths = [];
+    try {
+        const { id: bookingId } = req.params;
+        const userId = req.user.id;
+        const items = [];
+
+        // Upload files to Supabase if present
+        if (req.files && req.files.delivery) {
+            await Promise.all(req.files.delivery.map(async (file) => {
+                const type = file.mimetype.startsWith("image/") ? "IMAGE" :
+                    file.mimetype.startsWith("video/") ? "VIDEO" : "DOCUMENT";
+
+                const path = `bookings/${bookingId}/${Date.now()}_${file.originalname}`;
+                const url = await uploadFile(path, file.buffer, undefined, { contentType: file.mimetype });
+                uploadedPaths.push(path);
+
+                items.push({
+                    type,
+                    url,
+                    metadata: {
+                        originalName: file.originalname,
+                        size: file.size,
+                        mimeType: file.mimetype
+                    }
+                });
+            }));
+        }
+
+        // Add links if provided (e.g. Google Drive, YouTube)
+        let { links } = req.body;
+        if (links) {
+            const linksArray = Array.isArray(links) ? links : [links];
+            linksArray.forEach(link => {
+                items.push({
+                    type: "LINK",
+                    url: link,
+                    metadata: {
+                        title: "External Delivery Link"
+                    }
+                });
+            });
+        }
+
+        if (items.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: "No media or links provided for delivery"
+            });
+        }
+
+        const booking = await bookingService.uploadBookingMedia(bookingId, userId, items);
+
+        res.status(200).json({
+            success: true,
+            message: "Project media uploaded successfully",
+            data: booking.delivery
+        });
+    } catch (error) {
+        // ROLLBACK: Delete files from Supabase if DB operation failed
+        if (uploadedPaths.length > 0) {
+            await deleteFiles(uploadedPaths).catch(e => console.error("Booking delivery rollback failed:", e));
+        }
         res.status(400).json({
             success: false,
             message: error.message

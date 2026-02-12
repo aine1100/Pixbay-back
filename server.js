@@ -11,6 +11,7 @@ import chatRoutes from "./routes/chat/chatRoutes.js";
 import notificationRoutes from "./routes/notification/notificationRoutes.js";
 import adminRoutes from "./routes/admin/adminRoutes.js";
 import supportRoutes from "./routes/support/supportRoutes.js";
+import dashboardRoutes from "./routes/dashboard/dashboardRoutes.js";
 import { setupSwagger } from "./utils/swagger.js";
 import { initSocket } from "./utils/socket.js";
 import http from "http";
@@ -38,6 +39,7 @@ app.use("/api/v1/chats", chatRoutes);
 app.use("/api/v1/notifications", notificationRoutes);
 app.use("/api/v1/admin", adminRoutes);
 app.use("/api/v1/support", supportRoutes);
+app.use("/api/v1/dashboard", dashboardRoutes);
 
 const port = process.env.DEV_PORT;
 server.listen(port, () => {
