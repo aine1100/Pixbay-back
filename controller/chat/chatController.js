@@ -157,6 +157,7 @@ export const uploadDocument = async (req, res) => {
             const io = getIo();
             io.to(`chat_${chatId}`).emit("receive_message", message);
         } catch (e) {
+            console.log(e);
             // socket emit is best-effort
         }
     } catch (error) {

@@ -1,5 +1,6 @@
 import * as userService from "../../service/user/user.js";
 import { updateFcmToken as updateToken } from "../../utils/notifications.js";
+import { uploadFile } from "../../utils/supabase.js";
 
 /**
  * Controller to get user profile
@@ -173,6 +174,47 @@ export const updateMe = async (req, res) => {
             success: true,
             data: updatedUser,
             message: "Profile updated successfully"
+        });
+    } catch (error) {
+        res.status(400).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+
+/**
+ * Controller to upload profile picture
+ */
+export const uploadProfilePicture = async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({
+                success: false,
+                message: "No image file provided"
+            });
+        }
+
+        const userId = req.user.id;
+        const file = req.file;
+        const fileExt = file.originalname.split(".").pop();
+        const fileName = `${userId}-${Date.now()}.${fileExt}`;
+        const filePath = `profiles/${fileName}`;
+
+        // Upload to Supabase
+        const publicUrl = await uploadFile(filePath, file.buffer, "pixbay", {
+            contentType: file.mimetype
+        });
+
+        // Update user profile
+        const updatedUser = await userService.updateUserProfile(userId, {
+            profilePicture: publicUrl
+        });
+
+        res.status(200).json({
+            success: true,
+            data: updatedUser,
+            message: "Profile picture updated successfully"
         });
     } catch (error) {
         res.status(400).json({

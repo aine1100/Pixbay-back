@@ -4,12 +4,9 @@ import prisma from "../../prisma/client.js";
  * Get statistics for a client dashboard
  */
 export const getClientStats = async (userId) => {
-    // 1. Active Bookings (Confirmed or In Progress)
-    const activeBookings = await prisma.booking.count({
-        where: {
-            clientId: userId,
-            status: { in: ["CONFIRMED", "IN_PROGRESS"] }
-        }
+    // 1. Total Bookings
+    const totalBookings = await prisma.booking.count({
+        where: { clientId: userId }
     });
 
     // 2. Total Spent (Completed Payments)
@@ -24,32 +21,20 @@ export const getClientStats = async (userId) => {
         }
     });
 
-    // 3. Pending Reviews (Completed bookings without a review from this client)
-    const pendingReviews = await prisma.booking.count({
+    // 3. Total Messages (Chats count)
+    const totalMessages = await prisma.chat.count({
         where: {
-            clientId: userId,
-            status: "COMPLETED",
-            reviews: {
-                none: {
-                    reviewerId: userId
-                }
-            }
-        }
-    });
-
-    // 4. Completed Orders
-    const completedOrders = await prisma.booking.count({
-        where: {
-            clientId: userId,
-            status: "COMPLETED"
+            OR: [
+                { user1Id: userId },
+                { user2Id: userId }
+            ]
         }
     });
 
     return {
-        activeBookings,
+        totalBookings,
         totalSpent: spentAggregate._sum.amount || 0,
-        pendingReviews,
-        completedOrders
+        totalMessages
     };
 };
 

@@ -1,4 +1,5 @@
 import express from "express";
+import multer from "multer";
 import {
     getProfile,
     updateProfile,
@@ -9,6 +10,7 @@ import {
     changeRole,
     getMe,
     updateMe,
+    uploadProfilePicture,
     getSessions,
     updateFcmToken,
     toggleFavorite,
@@ -18,9 +20,30 @@ import {
 import { protect, restrictTo } from "../../middleware/auth/authMiddleware.js";
 
 const router = express.Router();
+const upload = multer({ storage: multer.memoryStorage() });
 
 // All routes below this line are protected
 router.use(protect);
+
+/**
+ * @swagger
+ * /users/me/profile-picture:
+ *   patch:
+ *     summary: Upload/Update profile picture
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               profilePicture:
+ *                 type: string
+ *                 format: binary
+ */
+router.patch("/me/profile-picture", upload.single("profilePicture"), uploadProfilePicture);
 
 /**
  * @swagger

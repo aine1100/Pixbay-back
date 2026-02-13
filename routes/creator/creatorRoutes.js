@@ -4,7 +4,6 @@ import {
     activateIdentity,
     uploadPortfolio,
     updateEquipment,
-    updateProfile,
     getReviews
 } from "../../controller/creator/creatorController.js";
 import {
