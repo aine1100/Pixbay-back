@@ -1,5 +1,4 @@
 import express from "express";
-import multer from "multer";
 import {
     getMessages,
     listChats,
@@ -8,10 +7,10 @@ import {
     totalUnread,
     uploadDocument
 } from "../../controller/chat/chatController.js";
+import { uploadAttachment } from "../../utils/upload.js";
 import { protect } from "../../middleware/auth/authMiddleware.js";
 
 const router = express.Router();
-const upload = multer({ storage: multer.memoryStorage() });
 
 router.use(protect);
 
@@ -116,6 +115,6 @@ router.patch("/:chatId/read", markAsRead);
  *                 type: string
  *                 format: binary
  */
-router.post("/:chatId/upload", upload.single("attachment"), uploadDocument);
+router.post("/:chatId/upload", uploadAttachment.single("attachment"), uploadDocument);
 
 export default router;

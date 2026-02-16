@@ -11,6 +11,13 @@ import {
 } from "../../controller/auth/authController.js";
 import { protect } from "../../middleware/auth/authMiddleware.js";
 import { authRateLimiter } from "../../middleware/auth/rateLimiter.js";
+import {
+    validateRegister,
+    validateLogin,
+    validateVerifyAccount,
+    validateForgotPassword,
+    validateResetPassword
+} from "../../middleware/validation/authValidation.js";
 
 /**
  * @swagger
@@ -56,7 +63,7 @@ const router = express.Router();
  *       400:
  *         description: Missing required fields or user already exists
  */
-router.post("/register", authRateLimiter, register);
+router.post("/register", authRateLimiter, validateRegister, register);
 
 /**
  * @swagger
@@ -84,7 +91,7 @@ router.post("/register", authRateLimiter, register);
  *       401:
  *         description: Invalid credentials
  */
-router.post("/login", authRateLimiter, login);
+router.post("/login", authRateLimiter, validateLogin, login);
 
 /**
  * @swagger
@@ -112,7 +119,7 @@ router.post("/login", authRateLimiter, login);
  *       400:
  *         description: Invalid or expired OTP
  */
-router.post("/verify-otp", authRateLimiter, verifyAccount);
+router.post("/verify-otp", authRateLimiter, validateVerifyAccount, verifyAccount);
 
 /**
  * @swagger
@@ -137,7 +144,7 @@ router.post("/verify-otp", authRateLimiter, verifyAccount);
  *       400:
  *         description: User not found
  */
-router.post("/forgot-password", authRateLimiter, forgotPassword);
+router.post("/forgot-password", authRateLimiter, validateForgotPassword, forgotPassword);
 
 /**
  * @swagger
@@ -168,7 +175,7 @@ router.post("/forgot-password", authRateLimiter, forgotPassword);
  *       400:
  *         description: Invalid/expired OTP
  */
-router.post("/reset-password", authRateLimiter, resetUserPassword);
+router.post("/reset-password", authRateLimiter, validateResetPassword, resetUserPassword);
 
 /**
  * @swagger

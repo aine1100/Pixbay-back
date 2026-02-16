@@ -16,17 +16,21 @@ import reviewRoutes from "./routes/review/reviewRoutes.js";
 import { setupSwagger } from "./utils/swagger.js";
 import { initSocket } from "./utils/socket.js";
 import http from "http";
+import helmet from "helmet";
 import { globalRateLimiter } from "./middleware/auth/rateLimiter.js";
-
 
 const app = express();
 const server = http.createServer(app);
 
 initSocket(server);
-
 setupSwagger(app);
+
+// Security Middleware
+app.use(helmet());
+app.set("trust proxy", 1); // Enable if behind a proxy like Nginx/Load Balancer
+
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: "10kb" })); // Limit JSON payload size
 app.use(globalRateLimiter);
 
 // Routes

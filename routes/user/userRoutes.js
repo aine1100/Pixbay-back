@@ -1,5 +1,4 @@
 import express from "express";
-import multer from "multer";
 import {
     getProfile,
     updateProfile,
@@ -17,10 +16,10 @@ import {
     getFavorites,
     revokeSession
 } from "../../controller/user/userController.js";
+import { uploadProfile } from "../../utils/upload.js";
 import { protect, restrictTo } from "../../middleware/auth/authMiddleware.js";
 
 const router = express.Router();
-const upload = multer({ storage: multer.memoryStorage() });
 
 // All routes below this line are protected
 router.use(protect);
@@ -43,7 +42,7 @@ router.use(protect);
  *                 type: string
  *                 format: binary
  */
-router.patch("/me/profile-picture", upload.single("profilePicture"), uploadProfilePicture);
+router.patch("/me/profile-picture", uploadProfile.single("profilePicture"), uploadProfilePicture);
 
 /**
  * @swagger

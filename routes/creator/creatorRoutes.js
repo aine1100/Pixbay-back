@@ -1,5 +1,4 @@
 import express from "express";
-import multer from "multer";
 import {
     activateIdentity,
     uploadPortfolio,
@@ -11,11 +10,11 @@ import {
     getProfile,
     browseCreators
 } from "../../controller/creator/serviceController.js";
+import { uploadIdentity, uploadPortfolioMedia } from "../../utils/upload.js";
 import { protect } from "../../middleware/auth/authMiddleware.js";
 
 
 const router = express.Router();
-const upload = multer({ storage: multer.memoryStorage() });
 
 /**
  * @swagger
@@ -117,7 +116,7 @@ router.put("/pricing", updatePricing);
  */
 router.post(
     "/activate/step1",
-    upload.fields([{ name: "idFront", maxCount: 1 }, { name: "idBack", maxCount: 1 }]),
+    uploadIdentity.fields([{ name: "idFront", maxCount: 1 }, { name: "idBack", maxCount: 1 }]),
     activateIdentity
 );
 
@@ -150,7 +149,7 @@ router.post(
  */
 router.post(
     "/activate/step2",
-    upload.fields([{ name: "portfolio", maxCount: 10 }]),
+    uploadPortfolioMedia.fields([{ name: "portfolio", maxCount: 10 }]),
     uploadPortfolio
 );
 

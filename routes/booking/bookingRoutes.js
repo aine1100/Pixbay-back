@@ -1,5 +1,4 @@
 import express from "express";
-import multer from "multer";
 import {
     create,
     list,
@@ -9,10 +8,10 @@ import {
     checkIn,
     uploadDelivery
 } from "../../controller/booking/bookingController.js";
+import { uploadPortfolioMedia } from "../../utils/upload.js";
 import { protect } from "../../middleware/auth/authMiddleware.js";
 
 const router = express.Router();
-const upload = multer({ storage: multer.memoryStorage() });
 
 // All booking routes are protected
 router.use(protect);
@@ -212,6 +211,6 @@ router.post("/:id/check-in", checkIn);
  *       200:
  *         description: Media uploaded successfully
  */
-router.post("/:id/delivery", upload.fields([{ name: "delivery", maxCount: 10 }]), uploadDelivery);
+router.post("/:id/delivery", uploadPortfolioMedia.fields([{ name: "delivery", maxCount: 10 }]), uploadDelivery);
 
 export default router;
