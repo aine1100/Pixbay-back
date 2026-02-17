@@ -1,0 +1,172 @@
+import * as payService from "../../service/payment/payService.js";
+import prisma from "../../prisma/client.js";
+
+/**
+ * Initialize a payment for a booking
+ */
+export const initialize = async (req, res) => {
+    const { bookingId, type, ...details } = req.body;
+    const userId = req.user.id;
+
+    try {
+        const booking = await prisma.booking.findUnique({
+            where: { id: bookingId },
+            include: { client: true }
+        });
+
+        if (!booking) {
+            return res.status(404).json({ success: false, message: "Booking not found" });
+        }
+
+        if (booking.clientId !== userId) {
+            return res.status(403).json({ success: false, message: "Unauthorized" });
+        }
+
+        if (booking.paymentStatus === "FULLY_PAID") {
+            return res.status(400).json({ success: false, message: "Booking already paid" });
+        }
+
+        let responseData;
+        
+        if (type === 'card') {
+            responseData = await payService.chargeCard(booking, booking.client, details);
+        } else if (type === 'momo') {
+            responseData = await payService.chargeMomo(booking, booking.client, details);
+        } else {
+            // Default to Hosted Link if no specific type or 'hosted'
+            const paymentData = await payService.initializePayment(booking, booking.client, details);
+            if (paymentData.status === "success") {
+                responseData = { paymentLink: paymentData.data.link };
+            } else {
+                throw new Error("Failed to initialize hosted payment");
+            }
+        }
+
+        res.status(200).json({
+            success: true,
+            data: responseData
+        });
+
+    } catch (error) {
+        console.error("Initialize Payment Controller Error:", error);
+        res.status(500).json({
+            success: false,
+            message: error.message || "Failed to initialize payment"
+        });
+    }
+};
+
+/**
+ * Verify a transaction manually from frontend callback
+ */
+export const verify = async (req, res) => {
+    const { transactionId } = req.query;
+
+    if (!transactionId) {
+        return res.status(400).json({ success: false, message: "Transaction ID is required" });
+    }
+
+    try {
+        const txData = await payService.verifyTransaction(transactionId);
+
+        if (txData.status === "success") {
+            // Check if already finalized to avoid double updates
+            const bookingId = txData.data.meta.bookingId;
+            const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
+
+            if (booking.paymentStatus !== "FULLY_PAID") {
+                await payService.finalizePayment(txData.data);
+            }
+
+            res.status(200).json({
+                success: true,
+                message: "Payment verified successfully",
+                data: txData.data
+            });
+        } else {
+            res.status(400).json({
+                success: false,
+                message: "Payment verification failed",
+                error: txData
+            });
+        }
+    } catch (error) {
+        console.error("Verify Payment Controller Error:", error);
+        res.status(500).json({ success: false, message: "Internal server error" });
+    }
+};
+
+/**
+ * Handle Flutterwave Webhook
+ */
+export const handleWebhook = async (req, res) => {
+    // Flutterwave secret hash verification recommended
+    const secretHash = process.env.FLUTTERWAVE_WEBHOOK_HASH;
+    const signature = req.headers["verif-hash"];
+
+    if (secretHash && signature !== secretHash) {
+        return res.status(401).end();
+    }
+
+    const payload = req.body;
+
+    // Acknowledge receipt immediately
+    res.status(200).end();
+
+    try {
+        const txData = payload.data;
+        if (payload.event === "charge.completed") {
+            if (txData.status === "successful") {
+                await payService.finalizePayment(txData);
+                console.info(`[Webhook] Payment finalized for tx_ref: ${txData.tx_ref}`);
+            } else if (txData.status === "failed") {
+                await payService.failPayment(txData);
+                console.warn(`[Webhook] Payment failed for tx_ref: ${txData.tx_ref}`);
+            }
+        }
+    } catch (error) {
+        console.error("Webhook Processing Error:", error);
+    }
+};
+
+/**
+ * Get payment history for a creator
+ */
+export const getCreatorPayments = async (req, res) => {
+    const userId = req.user.id;
+
+    try {
+        // Find creator profile first
+        const creator = await prisma.creator.findUnique({
+            where: { userId }
+        });
+
+        if (!creator) {
+            return res.status(404).json({ success: false, message: "Creator profile not found" });
+        }
+
+        const transactions = await prisma.transaction.findMany({
+            where: { creatorId: creator.id },
+            include: {
+                booking: {
+                    select: {
+                        bookingNumber: true,
+                        category: true,
+                        client: {
+                            select: { firstName: true, lastName: true }
+                        }
+                    }
+                }
+            },
+            orderBy: { createdAt: "desc" }
+        });
+
+        res.status(200).json({
+            success: true,
+            data: transactions
+        });
+    } catch (error) {
+        console.error("Get Creator Payments Error:", error);
+        res.status(500).json({ success: false, message: "Internal server error" });
+    }
+};

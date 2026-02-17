@@ -30,6 +30,9 @@ export const initSocket = (server) => {
         const userId = socket.user.id;
         console.log(`User connected: ${userId}`);
 
+        // Join personal room for targeted notifications
+        socket.join(`user_${userId}`);
+
         // Track online presence
         if (!onlineUsers.has(userId)) {
             onlineUsers.set(userId, new Set());
@@ -78,9 +81,9 @@ export const initSocket = (server) => {
             const { chatId } = data;
             try {
                 await chatService.markChatAsRead(chatId, userId);
-                socket.to(`chat_${chatId}`).emit("messages_marked_read", { 
-                    chatId, 
-                    userId 
+                socket.to(`chat_${chatId}`).emit("messages_marked_read", {
+                    chatId,
+                    userId
                 });
             } catch (error) {
                 console.error("Socket mark read error:", error);
