@@ -35,6 +35,17 @@ router.post("/initialize", protect, payController.initialize);
 
 /**
  * @swagger
+ * /payments/validate:
+ *   post:
+ *     summary: Validate a payment with OTP
+ *     tags: [Payments]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.post("/validate", protect, payController.validate);
+
+/**
+ * @swagger
  * /payments/verify:
  *   get:
  *     summary: Verify a transaction manually

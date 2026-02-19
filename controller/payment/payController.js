@@ -97,6 +97,44 @@ export const verify = async (req, res) => {
 };
 
 /**
+ * Validate a payment with OTP
+ */
+export const validate = async (req, res) => {
+    const { transactionId, otp } = req.body;
+
+    if (!transactionId || !otp) {
+        return res.status(400).json({ success: false, message: "Transaction ID and OTP are required" });
+    }
+
+    try {
+        const response = await payService.validateCharge(transactionId, otp);
+
+        if (response.status === "success") {
+            // Some OTP validations might lead directly to completion
+            // If the response contains successful charge data, we can finalize
+            if (response.data && response.data.status === "successful") {
+                await payService.finalizePayment(response.data);
+            }
+
+            res.status(200).json({
+                success: true,
+                message: "OTP verified successfully",
+                data: response.data
+            });
+        } else {
+            res.status(400).json({
+                success: false,
+                message: response.message || "OTP verification failed",
+                data: response
+            });
+        }
+    } catch (error) {
+        console.error("Validate Payment Controller Error:", error);
+        res.status(500).json({ success: false, message: error.message || "Internal server error" });
+    }
+};
+
+/**
  * Handle Flutterwave Webhook
  */
 export const handleWebhook = async (req, res) => {
@@ -145,7 +183,7 @@ export const getCreatorPayments = async (req, res) => {
             return res.status(404).json({ success: false, message: "Creator profile not found" });
         }
 
-        const transactions = await prisma.transaction.findMany({
+        const rawTransactions = await prisma.transaction.findMany({
             where: { creatorId: creator.id },
             include: {
                 booking: {
@@ -160,6 +198,24 @@ export const getCreatorPayments = async (req, res) => {
             },
             orderBy: { createdAt: "desc" }
         });
+
+        // Deduplicate by bookingId, prioritizing more successful statuses
+        const statusPriority = { 'COMPLETED': 3, 'PROCESSING': 2, 'PENDING': 1, 'FAILED': 0 };
+        const transactionMap = new Map();
+
+        rawTransactions.forEach(tx => {
+            const bookingId = tx.bookingId;
+            if (!bookingId) return; // Should not happen with current logic
+
+            const existing = transactionMap.get(bookingId);
+            if (!existing || statusPriority[tx.status] > statusPriority[existing.status]) {
+                transactionMap.set(bookingId, tx);
+            }
+        });
+
+        const transactions = Array.from(transactionMap.values()).sort((a, b) => 
+            new Date(b.createdAt) - new Date(a.createdAt)
+        );
 
         res.status(200).json({
             success: true,
