@@ -20,7 +20,7 @@ jobs:
             cd ~/pixbay
             
             # Pull latest changes for backend
-            cd backend
+            cd Pixbay-back
             git pull origin main
             
             # Restart the backend container
