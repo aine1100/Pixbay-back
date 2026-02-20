@@ -13,15 +13,25 @@ import { sendPushNotification } from "../utils/notifications.js";
 import prisma from "../prisma/client.js";
 
 // Connection for BullMQ
+const redisUrl = process.env.REDIS_URL;
+if (!redisUrl) {
+    console.error("[Worker] FATAL: REDIS_URL is not defined in the environment.");
+    process.exit(1);
+}
+
+// Convert REDIS_URL to BullMQ connection object (extract host/port)
+const url = new URL(redisUrl);
 const connection = {
-    host: process.env.REDIS_HOST || "127.0.0.1",
-    port: parseInt(process.env.REDIS_PORT) || 6379,
+    host: url.hostname || "redis",
+    port: parseInt(url.port) || 6379,
+    password: url.password || undefined,
     maxRetriesPerRequest: null
 };
 
 console.log(`[Worker] Started. 
-  REDIS_HOST: ${process.env.REDIS_HOST || "DEFAULT (127.0.0.1)"}
-  REDIS_PORT: ${process.env.REDIS_PORT || "DEFAULT (6379)"}
+  REDIS_URL: ${redisUrl.replace(/:[^:@]+@/, ':***@')}
+  Resolved Host: ${connection.host}
+  Resolved Port: ${connection.port}
   EMAIL_HOST: ${process.env.EMAIL_HOST ? "PRESENT" : "MISSING"}
   DATABASE_URL: ${process.env.DATABASE_URL ? "PRESENT" : "MISSING"}
 `);
