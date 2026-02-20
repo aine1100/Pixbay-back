@@ -28,9 +28,9 @@ export const initialize = async (req, res) => {
 
         let responseData;
 
-        if (type === 'card') {
+        if (type === "card") {
             responseData = await payService.chargeCard(booking, booking.client, details);
-        } else if (type === 'momo') {
+        } else if (type === "momo") {
             responseData = await payService.chargeMomo(booking, booking.client, details);
         } else {
             // Default to Hosted Link if no specific type or 'hosted'
@@ -130,11 +130,11 @@ export const validate = async (req, res) => {
 
             try {
                 await payService.finalizePayment(response.data);
-                console.info(`[Payment Controller] ✅ Payment finalized successfully.`);
+                console.info("[Payment Controller] ✅ Payment finalized successfully.");
             } catch (finalizeError) {
                 // Log the error but still return success to the user — money was charged
                 // The webhook will retry finalization, or admin can reconcile
-                console.error(`[Payment Controller] ❌ Finalization failed after successful charge:`, finalizeError.message);
+                console.error("[Payment Controller] ❌ Finalization failed after successful charge:", finalizeError.message);
             }
 
             return res.status(200).json({
@@ -228,7 +228,7 @@ export const getCreatorPayments = async (req, res) => {
         });
 
         // Deduplicate by bookingId, prioritizing more successful statuses
-        const statusPriority = { 'COMPLETED': 3, 'PROCESSING': 2, 'PENDING': 1, 'FAILED': 0 };
+        const statusPriority = { "COMPLETED": 3, "PROCESSING": 2, "PENDING": 1, "FAILED": 0 };
         const transactionMap = new Map();
 
         rawTransactions.forEach(tx => {

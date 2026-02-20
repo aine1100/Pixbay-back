@@ -2,7 +2,6 @@ import Flutterwave from "flutterwave-node-v3";
 import prisma from "../../prisma/client.js";
 import { notifyUser } from "../notification/notification.js";
 import { getIo } from "../../utils/socket.js";
-import { addPendingFunds } from "../wallet/walletService.js";
 
 const flw = new Flutterwave(
     process.env.FLUTTERWAVE_PUBLIC_KEY,
@@ -23,7 +22,7 @@ export const initializePayment = async (booking, user, options = {}) => {
             amount: parseFloat(booking.pricing.totalAmount),
             currency: booking.pricing.currency || "KES",
             redirect_url: `${process.env.FRONTEND_URL}/client/payments/callback`,
-            payment_options: method === 'card' ? 'card' : 'mobilemoneyrwanda,mobilemoneyuganda,mobilemoneyghana,mobilemoneyzambia,mobilemoneytanzania',
+            payment_options: method === "card" ? "card" : "mobilemoneyrwanda,mobilemoneyuganda,mobilemoneyghana,mobilemoneyzambia,mobilemoneytanzania",
             meta: {
                 bookingId: booking.id,
                 clientId: user.id,
@@ -98,7 +97,7 @@ export const chargeCard = async (booking, user, cardDetails) => {
             expiry_year: expiryYear,
             currency: booking.pricing.currency || "KES",
             amount: parseFloat(booking.pricing.totalAmount),
-            email: user.email.split('_').slice(-1)[0].trim(),
+            email: user.email.split("_").slice(-1)[0].trim(),
             fullname: `${user.firstName} ${user.lastName}`,
             phone_number: user.phoneNumber || "0000000000",
             tx_ref: `PIXBAY-CARD-${Date.now()}-${booking.id.split("-")[0]}`,
@@ -114,7 +113,7 @@ export const chargeCard = async (booking, user, cardDetails) => {
 
         console.info(`[Payment Service] Initiating card charge for booking ${booking.id}...`);
         const response = await flw.Charge.card(payload);
-        console.info(`[Payment Service] Flutterwave Response:`, JSON.stringify(response, null, 2));
+        console.info("[Payment Service] Flutterwave Response:", JSON.stringify(response, null, 2));
 
         if (response.status === "success" || response.message === "Charge initiated") {
             await prisma.transaction.create({
@@ -147,7 +146,7 @@ export const chargeMomo = async (booking, user, momoDetails) => {
             tx_ref: `PIXBAY-MOMO-${Date.now()}-${booking.id.split("-")[0]}`,
             amount: parseFloat(booking.pricing.totalAmount),
             currency: booking.pricing.currency || "RWF",
-            email: user.email.includes('_') ? user.email.split('_').slice(-1)[0].trim() : user.email.trim(),
+            email: user.email.includes("_") ? user.email.split("_").slice(-1)[0].trim() : user.email.trim(),
             phone_number: momoDetails.phoneNumber,
             fullname: `${user.firstName} ${user.lastName}`,
             network: momoDetails.network || "MTN",
@@ -255,7 +254,7 @@ export const finalizePayment = async (txData) => {
         const totalAmount = parseFloat(booking.pricing?.totalAmount || 0);
         const platformFee = Math.round(totalAmount * 0.05 * 100) / 100; // 5% platform fee
         // Deduct Flutterwave's transaction fee — from txData.app_fee or estimate 1.5%
-        const transactionFee = Math.round(parseFloat(txData.app_fee || 0) * 100) / 100 
+        const transactionFee = Math.round(parseFloat(txData.app_fee || 0) * 100) / 100
             || Math.round(totalAmount * 0.015 * 100) / 100;
         const creatorAmount = Math.round((totalAmount - platformFee - transactionFee) * 100) / 100;
 
@@ -350,7 +349,7 @@ export const finalizePayment = async (txData) => {
         console.error("[Payment Service] Full error:", error);
         throw error;
     }
-}
+};
 
 /**
  * Validate a charge with OTP
@@ -364,7 +363,7 @@ export const validateCharge = async (flw_ref, otp) => {
 
         console.info(`[Payment Service] Validating charge for flw_ref: ${flw_ref}...`);
         const response = await flw.Charge.validate(payload);
-        console.info(`[Payment Service] Validation Response:`, JSON.stringify(response, null, 2));
+        console.info("[Payment Service] Validation Response:", JSON.stringify(response, null, 2));
 
         return response;
     } catch (error) {

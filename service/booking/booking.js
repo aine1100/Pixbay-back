@@ -347,7 +347,7 @@ export const confirmDelivery = async (bookingId, userId) => {
     await notifyUser(booking.creator.userId, {
         type: "PAYMENT",
         title: "Funds Released!",
-        message: `The client has confirmed delivery for booking ${booking.bookingNumber}. ${booking.pricing.currency || 'KES'} ${creatorAmount} has been added to your wallet.`,
+        message: `The client has confirmed delivery for booking ${booking.bookingNumber}. ${booking.pricing.currency || "KES"} ${creatorAmount} has been added to your wallet.`,
         metadata: { bookingId, type: "ESCROW_RELEASED" }
     });
 
