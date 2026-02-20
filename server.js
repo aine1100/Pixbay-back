@@ -53,5 +53,5 @@ app.use("/api/v1/wallet", walletRoutes);
 
 const port = process.env.DEV_PORT;
 server.listen(port, () => {
-    console.info(`Server running on port ${port}`);
+    console.info(`Welcome to pixbay server running on port ${port}`);
 });
