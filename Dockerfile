@@ -1,5 +1,4 @@
-# Build stage
-FROM node:20-alpine AS builder
+FROM node:18-alpine
 
 WORKDIR /app
 
@@ -7,38 +6,14 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install
 
-# Copy source and prisma schema
+# Copy source code
 COPY . .
 
 # Generate Prisma Client
 RUN npx prisma generate
 
-# Production stage
-FROM node:20-alpine
+# Expose API port
+EXPOSE 5000
 
-WORKDIR /app
-
-# Copy built assets and dependencies from builder
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package*.json ./
-COPY --from=builder /app/server.js ./
-COPY --from=builder /app/controller ./controller
-COPY --from=builder /app/middleware ./middleware
-COPY --from=builder /app/routes ./routes
-COPY --from=builder /app/service ./service
-COPY --from=builder /app/utils ./utils
-COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/workers ./workers
-COPY --from=builder /app/ecosystem.config.cjs ./
-
-# Expose the API port
-EXPOSE 3000
-
-# Install PM2 globally
-RUN npm install pm2 -g
-
-# Set environment to production
-ENV NODE_ENV=production
-
-# Start the application with PM2
-CMD ["pm2-runtime", "start", "ecosystem.config.cjs", "--env", "production"]
+# Start the application
+CMD ["npm", "run", "prod"]
