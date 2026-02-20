@@ -1,4 +1,5 @@
 import prisma from "../../prisma/client.js";
+import { initWallet } from "../wallet/walletService.js";
 
 /**
  * Step 1: Submit Identity Documents
@@ -22,6 +23,7 @@ export const submitIdentity = async (userId, idData) => {
                 documents: idData
             }
         });
+        await initWallet(creator.id);
     } else {
         creator = await prisma.creator.update({
             where: { userId },

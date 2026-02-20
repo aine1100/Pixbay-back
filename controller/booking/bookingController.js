@@ -181,3 +181,22 @@ export const uploadDelivery = async (req, res) => {
         });
     }
 };
+
+export const confirmDelivery = async (req, res) => {
+    try {
+        const { id: bookingId } = req.params;
+        const userId = req.user.id;
+
+        const result = await bookingService.confirmDelivery(bookingId, userId);
+        res.status(200).json({
+            success: true,
+            message: "Delivery confirmed and funds released to creator wallet.",
+            data: result
+        });
+    } catch (error) {
+        res.status(400).json({
+            success: false,
+            message: error.message
+        });
+    }
+};

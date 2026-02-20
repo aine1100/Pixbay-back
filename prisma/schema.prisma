@@ -36,6 +36,7 @@ enum BookingStatus {
   PENDING
   CONFIRMED
   IN_PROGRESS
+  AWAITING_DELIVERY
   COMPLETED
   CANCELLED
   DISPUTED
@@ -44,6 +45,7 @@ enum BookingStatus {
 enum PaymentStatus {
   PENDING
   DEPOSIT_PAID
+  PAID_IN_ESCROW
   FULLY_PAID
   REFUNDED
 }
@@ -120,6 +122,13 @@ enum JobStatus {
   FILLED
   COMPLETED
   CANCELLED
+}
+
+enum BidStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
 }
 
 enum SafetyStatus {
@@ -207,8 +216,10 @@ model Creator {
   // Relations
   portfolioMedia PortfolioMedia[]
   bookings       Booking[]
+  wallet         Wallet?
   safetyCheckIns SafetyCheckIn[]
   savedByUsers   SavedCreator[]
+  bids           Bid[]
 }
 
 model PortfolioMedia {
@@ -255,9 +266,31 @@ model Job {
   description String
   budget      Decimal?  @db.Decimal(10, 2)
   location    String?
-  status      JobStatus @default(PENDING)
+  deadline    DateTime?
+  attachments Json?     // Array of file URLs
+  status      JobStatus @default(ACTIVE)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+
+  // Relations
+  bids        Bid[]
+  booking     Booking?
+}
+
+model Bid {
+  id          String    @id @default(uuid())
+  jobId       String
+  job         Job       @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  creatorId   String
+  creator     Creator   @relation(fields: [creatorId], references: [id])
+  amount      Decimal   @db.Decimal(10, 2)
+  message     String
+  portfolio   Json?     // Optional links/samples relevant to this bid
+  status      BidStatus @default(PENDING)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([jobId, creatorId])  // One bid per creator per job
 }
 
 model Booking {
@@ -287,6 +320,9 @@ model Booking {
   reviews        Review[]
   dispute        Dispute?
   safetyCheckIns SafetyCheckIn[]
+
+  jobId          String?       @unique
+  job            Job?          @relation(fields: [jobId], references: [id])
 }
 
 model BookingSession {
@@ -472,4 +508,20 @@ model SupportTicket {
   notificationError String?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
+}
+
+model Wallet {
+  id             String   @id @default(uuid())
+  creatorId      String   @unique
+  creator        Creator  @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  balance        Decimal  @default(0) @db.Decimal(10, 2)
+  pendingBalance Decimal  @default(0) @db.Decimal(10, 2)
+  currency       String   @default("KES")
+  
+  // Payout settings
+  payoutMethod   String?  // "MOBILE_MONEY" or "BANK"
+  payoutDetails  Json?    // { phoneNumber, network, accountName, accountNumber, bankCode }
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }

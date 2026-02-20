@@ -22,12 +22,12 @@ export const initialize = async (req, res) => {
             return res.status(403).json({ success: false, message: "Unauthorized" });
         }
 
-        if (booking.paymentStatus === "FULLY_PAID") {
+        if (booking.paymentStatus === "FULLY_PAID" || booking.paymentStatus === "PAID_IN_ESCROW") {
             return res.status(400).json({ success: false, message: "Booking already paid" });
         }
 
         let responseData;
-        
+
         if (type === 'card') {
             responseData = await payService.chargeCard(booking, booking.client, details);
         } else if (type === 'momo') {
@@ -70,12 +70,26 @@ export const verify = async (req, res) => {
         const txData = await payService.verifyTransaction(transactionId);
 
         if (txData.status === "success") {
-            // Check if already finalized to avoid double updates
-            const bookingId = txData.data.meta.bookingId;
-            const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
+            // Find booking from meta or DB lookup
+            let bookingId = txData.data?.meta?.bookingId;
 
-            if (booking.paymentStatus !== "FULLY_PAID") {
-                await payService.finalizePayment(txData.data);
+            if (!bookingId && txData.data?.tx_ref) {
+                const existingTx = await prisma.transaction.findUnique({
+                    where: { transactionNumber: txData.data.tx_ref }
+                });
+                bookingId = existingTx?.bookingId;
+            }
+
+            if (bookingId) {
+                const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
+
+                if (booking && (booking.paymentStatus === "PENDING" || booking.paymentStatus === "DEPOSIT_PAID")) {
+                    try {
+                        await payService.finalizePayment(txData.data);
+                    } catch (finalizeError) {
+                        console.error("[Verify Controller] Finalization failed:", finalizeError.message);
+                    }
+                }
             }
 
             res.status(200).json({
@@ -107,29 +121,43 @@ export const validate = async (req, res) => {
     }
 
     try {
+        console.info(`[Payment Controller] Validating OTP for flw_ref: ${transactionId}...`);
         const response = await payService.validateCharge(transactionId, otp);
 
-        if (response.status === "success") {
-            // Some OTP validations might lead directly to completion
-            // If the response contains successful charge data, we can finalize
-            if (response.data && response.data.status === "successful") {
+        if (response.status === "success" && response.data?.status === "successful") {
+            // OTP validated and charge is successful — finalize the payment
+            console.info(`[Payment Controller] OTP validated. Finalizing payment for tx_ref: ${response.data.tx_ref}...`);
+
+            try {
                 await payService.finalizePayment(response.data);
+                console.info(`[Payment Controller] ✅ Payment finalized successfully.`);
+            } catch (finalizeError) {
+                // Log the error but still return success to the user — money was charged
+                // The webhook will retry finalization, or admin can reconcile
+                console.error(`[Payment Controller] ❌ Finalization failed after successful charge:`, finalizeError.message);
             }
 
-            res.status(200).json({
+            return res.status(200).json({
                 success: true,
-                message: "OTP verified successfully",
+                message: "Payment verified and processed successfully",
+                data: response.data
+            });
+        } else if (response.status === "success") {
+            // OTP validated but charge might still be pending
+            return res.status(200).json({
+                success: true,
+                message: response.message || "OTP verified, payment processing",
                 data: response.data
             });
         } else {
-            res.status(400).json({
+            return res.status(400).json({
                 success: false,
                 message: response.message || "OTP verification failed",
                 data: response
             });
         }
     } catch (error) {
-        console.error("Validate Payment Controller Error:", error);
+        console.error("Validate Payment Controller Error:", error.message);
         res.status(500).json({ success: false, message: error.message || "Internal server error" });
     }
 };
@@ -213,7 +241,7 @@ export const getCreatorPayments = async (req, res) => {
             }
         });
 
-        const transactions = Array.from(transactionMap.values()).sort((a, b) => 
+        const transactions = Array.from(transactionMap.values()).sort((a, b) =>
             new Date(b.createdAt) - new Date(a.createdAt)
         );
 

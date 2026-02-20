@@ -14,6 +14,7 @@ import supportRoutes from "./routes/support/supportRoutes.js";
 import dashboardRoutes from "./routes/dashboard/dashboardRoutes.js";
 import reviewRoutes from "./routes/review/reviewRoutes.js";
 import paymentRoutes from "./routes/payment/payRoutes.js";
+import walletRoutes from "./routes/wallet/walletRoutes.js";
 import { setupSwagger } from "./utils/swagger.js";
 import { initSocket } from "./utils/socket.js";
 import http from "http";
@@ -48,6 +49,7 @@ app.use("/api/v1/support", supportRoutes);
 app.use("/api/v1/dashboard", dashboardRoutes);
 app.use("/api/v1/reviews", reviewRoutes);
 app.use("/api/v1/payments", paymentRoutes);
+app.use("/api/v1/wallet", walletRoutes);
 
 const port = process.env.DEV_PORT;
 server.listen(port, () => {

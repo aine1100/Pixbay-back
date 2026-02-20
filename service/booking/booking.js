@@ -293,3 +293,63 @@ export const uploadBookingMedia = async (bookingId, userId, mediaItems) => {
 
     return updatedBooking;
 };
+
+/**
+ * Confirm delivery and release escrow funds
+ * @param {string} bookingId 
+ * @param {string} userId - Client ID
+ */
+export const confirmDelivery = async (bookingId, userId) => {
+    // 1. Verify that the user is the client for this booking
+    const booking = await prisma.booking.findFirst({
+        where: {
+            id: bookingId,
+            clientId: userId,
+            paymentStatus: "PAID_IN_ESCROW",
+            escrowStatus: "HELD"
+        },
+        include: {
+            creator: true
+        }
+    });
+
+    if (!booking) {
+        throw new Error("Booking not found, not yours, or funds are not in escrow.");
+    }
+
+    const pricing = booking.pricing || {};
+    const creatorAmount = parseFloat(pricing.creatorAmount || 0);
+
+    if (creatorAmount <= 0) {
+        throw new Error("Invalid creator amount in booking records.");
+    }
+
+    // 2. Transactional update: Release funds + Update booking
+    await prisma.$transaction([
+        prisma.booking.update({
+            where: { id: bookingId },
+            data: {
+                status: "COMPLETED",
+                escrowStatus: "RELEASED",
+                paymentStatus: "FULLY_PAID" // Final state
+            }
+        }),
+        prisma.wallet.update({
+            where: { creatorId: booking.creatorId },
+            data: {
+                pendingBalance: { decrement: creatorAmount },
+                balance: { increment: creatorAmount }
+            }
+        })
+    ]);
+
+    // 3. Notify Creator
+    await notifyUser(booking.creator.userId, {
+        type: "PAYMENT",
+        title: "Funds Released!",
+        message: `The client has confirmed delivery for booking ${booking.bookingNumber}. ${booking.pricing.currency || 'KES'} ${creatorAmount} has been added to your wallet.`,
+        metadata: { bookingId, type: "ESCROW_RELEASED" }
+    });
+
+    return { success: true };
+};

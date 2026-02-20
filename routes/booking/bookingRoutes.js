@@ -6,7 +6,8 @@ import {
     updateStatus,
     remove,
     checkIn,
-    uploadDelivery
+    uploadDelivery,
+    confirmDelivery
 } from "../../controller/booking/bookingController.js";
 import { uploadPortfolioMedia } from "../../utils/upload.js";
 import { protect } from "../../middleware/auth/authMiddleware.js";
@@ -177,6 +178,26 @@ router.delete("/:id", remove);
  *         description: Check-in successful
  */
 router.post("/:id/check-in", checkIn);
+
+/**
+ * @swagger
+ * /bookings/{id}/confirm-delivery:
+ *   post:
+ *     summary: Confirm delivery and release escrowed funds to creator
+ *     tags: [Bookings]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Delivery confirmed and funds released
+ */
+router.post("/:id/confirm-delivery", confirmDelivery);
 
 /**
  * @swagger

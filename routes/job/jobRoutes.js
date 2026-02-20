@@ -7,137 +7,42 @@ import {
     updateMyJob,
     deleteMyJob
 } from "../../controller/job/jobController.js";
+import {
+    submitBid,
+    getJobBids,
+    getMyBids,
+    updateBid,
+    withdrawBid,
+    acceptBid,
+    rejectBid
+} from "../../controller/job/bidController.js";
 import { protect } from "../../middleware/auth/authMiddleware.js";
 import { cacheMiddleware } from "../../middleware/cache/cacheMiddleware.js";
 
 const router = express.Router();
 
-/**
- * @swagger
- * tags:
- *   name: Jobs
- *   description: Job request management for clients
- */
+// ─── PUBLIC ROUTES ───────────────────────────
+router.get("/", cacheMiddleware(300), listJobs);
 
-/**
- * @swagger
- * /jobs:
- *   get:
- *     summary: List all active jobs
- *     tags: [Jobs]
- *     responses:
- *       200:
- *         description: List of jobs
- */
-router.get("/", cacheMiddleware(3600), listJobs);
-
-/**
- * @swagger
- * /jobs/{id}:
- *   get:
- *     summary: Get job details
- *     tags: [Jobs]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Job details
- */
-router.get("/:id", getJob);
-
-// Protected routes
+// ─── PROTECTED ROUTES (must come before /:id to avoid conflicts) ───
 router.use(protect);
 
-/**
- * @swagger
- * /jobs:
- *   post:
- *     summary: Post a new job request
- *     tags: [Jobs]
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - title
- *               - description
- *             properties:
- *               title:
- *                 type: string
- *               description:
- *                 type: string
- *               budget:
- *                 type: number
- *               location:
- *                 type: string
- *               categoryId:
- *                 type: string
- *     responses:
- *       201:
- *         description: Job posted
- */
+// Static paths FIRST (before /:id)
 router.post("/", postJob);
-
-/**
- * @swagger
- * /jobs/my-jobs:
- *   get:
- *     summary: Get jobs posted by current user
- *     tags: [Jobs]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: List of user's jobs
- */
 router.get("/my-jobs", getMyJobs);
+router.get("/bids/my-bids", getMyBids);
+router.put("/bids/:id", updateBid);
+router.put("/bids/:id/withdraw", withdrawBid);
+router.put("/bids/:id/accept", acceptBid);
+router.put("/bids/:id/reject", rejectBid);
 
-/**
- * @swagger
- * /jobs/{id}:
- *   put:
- *     summary: Update a job request
- *     tags: [Jobs]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Job updated
- */
+// Parameterized /:id routes LAST
+router.get("/:id", getJob);
 router.put("/:id", updateMyJob);
-
-/**
- * @swagger
- * /jobs/{id}:
- *   delete:
- *     summary: Delete a job request
- *     tags: [Jobs]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Job deleted
- */
 router.delete("/:id", deleteMyJob);
+
+// Bid routes nested under job
+router.post("/:jobId/bids", submitBid);
+router.get("/:jobId/bids", getJobBids);
 
 export default router;

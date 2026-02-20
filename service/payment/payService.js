@@ -2,6 +2,7 @@ import Flutterwave from "flutterwave-node-v3";
 import prisma from "../../prisma/client.js";
 import { notifyUser } from "../notification/notification.js";
 import { getIo } from "../../utils/socket.js";
+import { addPendingFunds } from "../wallet/walletService.js";
 
 const flw = new Flutterwave(
     process.env.FLUTTERWAVE_PUBLIC_KEY,
@@ -235,9 +236,37 @@ export const finalizePayment = async (txData) => {
 
         console.info(`[Payment Service] Finalizing payment for booking ${bookingId} (TX: ${txRef})...`);
 
-        const [updatedTx, updatedBooking] = await prisma.$transaction([
-            // Update Transaction
-            prisma.transaction.update({
+        // Get the booking first to calculate commission
+        const booking = await prisma.booking.findUnique({
+            where: { id: bookingId },
+            include: { creator: true }
+        });
+
+        if (!booking) {
+            throw new Error(`Booking ${bookingId} not found`);
+        }
+
+        // Check if already finalized (idempotency guard)
+        if (booking.paymentStatus === "PAID_IN_ESCROW" || booking.paymentStatus === "FULLY_PAID") {
+            console.info(`[Payment Service] Booking ${bookingId} already finalized (status: ${booking.paymentStatus}). Skipping.`);
+            return { success: true, alreadyFinalized: true };
+        }
+
+        const totalAmount = parseFloat(booking.pricing?.totalAmount || 0);
+        const platformFee = Math.round(totalAmount * 0.05 * 100) / 100; // 5% platform fee
+        // Deduct Flutterwave's transaction fee — from txData.app_fee or estimate 1.5%
+        const transactionFee = Math.round(parseFloat(txData.app_fee || 0) * 100) / 100 
+            || Math.round(totalAmount * 0.015 * 100) / 100;
+        const creatorAmount = Math.round((totalAmount - platformFee - transactionFee) * 100) / 100;
+
+        console.info(`[Payment Service] Commission: total=${totalAmount}, platformFee=${platformFee}, txFee=${transactionFee}, creatorAmount=${creatorAmount}`);
+
+        // ---- ATOMIC DB TRANSACTION ----
+        // Use interactive transaction for better error handling
+        const [updatedTx, updatedBooking] = await prisma.$transaction(async (tx) => {
+            // 1. Update Transaction record
+            console.info(`[Payment Service] Step 1: Updating transaction record ${txRef}...`);
+            const txRecord = await tx.transaction.update({
                 where: { transactionNumber: txRef },
                 data: {
                     status: "COMPLETED",
@@ -245,34 +274,64 @@ export const finalizePayment = async (txData) => {
                     metadata: txData
                 },
                 include: { user: true }
-            }),
-            // Update Booking
-            prisma.booking.update({
+            });
+
+            // 2. Update Booking (Status + PaymentStatus + Fees)
+            console.info(`[Payment Service] Step 2: Updating booking ${bookingId}...`);
+            const bookingRecord = await tx.booking.update({
                 where: { id: bookingId },
                 data: {
-                    paymentStatus: "FULLY_PAID"
+                    status: "CONFIRMED",
+                    paymentStatus: "PAID_IN_ESCROW",
+                    escrowStatus: "HELD",
+                    pricing: {
+                        ...(booking.pricing || {}),
+                        platformFee,
+                        transactionFee,
+                        creatorAmount
+                    }
                 },
                 include: { creator: true }
-            })
-        ]);
+            });
 
-        // 1. Notify Client
-        await notifyUser(updatedTx.userId, {
-            type: "PAYMENT",
-            title: "Payment Successful!",
-            message: `Your payment for booking ${updatedBooking.bookingNumber} has been confirmed.`,
-            metadata: { bookingId: updatedBooking.id, transactionId: updatedTx.id, subType: "PAYMENT_SUCCESS" }
+            // 3. Add to creator's pending balance — use UPSERT to handle missing wallets
+            console.info(`[Payment Service] Step 3: Updating wallet for creator ${booking.creatorId}...`);
+            await tx.wallet.upsert({
+                where: { creatorId: booking.creatorId },
+                update: {
+                    pendingBalance: { increment: creatorAmount }
+                },
+                create: {
+                    creatorId: booking.creatorId,
+                    pendingBalance: creatorAmount,
+                    balance: 0,
+                    currency: booking.pricing?.currency || "KES"
+                }
+            });
+
+            console.info(`[Payment Service] ✅ Atomic transaction committed for booking ${bookingId}`);
+            return [txRecord, bookingRecord];
         });
 
-        // 2. Notify Creator
-        await notifyUser(updatedBooking.creator.userId, {
-            type: "PAYMENT",
-            title: "Payment Received!",
-            message: `You have received a payment for booking ${updatedBooking.bookingNumber}.`,
-            metadata: { bookingId: updatedBooking.id, transactionId: updatedTx.id, subType: "PAYMENT_RECEIVED" }
-        });
+        // ---- NON-CRITICAL: Notifications & Socket (failures here won't rollback the payment) ----
+        try {
+            await notifyUser(updatedTx.userId, {
+                type: "PAYMENT",
+                title: "Payment Successful!",
+                message: `Your payment for booking ${updatedBooking.bookingNumber} has been confirmed.`,
+                metadata: { bookingId: updatedBooking.id, transactionId: updatedTx.id, subType: "PAYMENT_SUCCESS" }
+            });
 
-        // 3. Emit Socket Event to Client (Real-time UI refresh)
+            await notifyUser(updatedBooking.creator.userId, {
+                type: "PAYMENT",
+                title: "Payment Received!",
+                message: `You have received a payment for booking ${updatedBooking.bookingNumber}.`,
+                metadata: { bookingId: updatedBooking.id, transactionId: updatedTx.id, subType: "PAYMENT_RECEIVED" }
+            });
+        } catch (notifyErr) {
+            console.warn("[Payment Service] Notification failed (non-critical):", notifyErr.message);
+        }
+
         try {
             const io = getIo();
             io.to(`user_${updatedTx.userId}`).emit("payment_completed", {
@@ -281,12 +340,15 @@ export const finalizePayment = async (txData) => {
                 message: "Payment Successful!"
             });
         } catch (socketErr) {
-            console.warn("[Payment Service] Socket emit failed:", socketErr.message);
+            console.warn("[Payment Service] Socket emit failed (non-critical):", socketErr.message);
         }
 
+        console.info(`[Payment Service] ✅ Payment fully finalized for booking ${bookingId}`);
         return { success: true };
     } catch (error) {
-        console.log("There was an error", error)
+        console.error("[Payment Service] ❌ Finalize Payment Error:", error.message);
+        console.error("[Payment Service] Full error:", error);
+        throw error;
     }
 }
 
