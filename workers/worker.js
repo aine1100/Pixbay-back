@@ -29,7 +29,7 @@ const connection = {
 };
 
 console.log(`[Worker] Started. 
-  REDIS_URL: ${redisUrl.replace(/:[^:@]+@/, ':***@')}
+  REDIS_URL: ${redisUrl.replace(/:[^:@]+@/, ":***@")}
   Resolved Host: ${connection.host}
   Resolved Port: ${connection.port}
   EMAIL_HOST: ${process.env.EMAIL_HOST ? "PRESENT" : "MISSING"}
@@ -40,17 +40,17 @@ console.log(`[Worker] Started.
 const emailWorker = new Worker("emailQueue", async (job) => {
     const { email, subject, html, ticketId, type: _type } = job.data;
     console.info(`[Worker] Processing Email to: ${email} ${ticketId ? `for Ticket: ${ticketId}` : ""}`);
-    
+
     try {
         await sendEmail(email, subject, html);
-        
+
         // If it's a support ticket, mark as notified
         if (ticketId) {
             await prisma.supportTicket.update({
                 where: { id: ticketId },
-                data: { 
+                data: {
                     adminNotified: true,
-                    notificationError: null 
+                    notificationError: null
                 }
             });
         }
@@ -59,7 +59,7 @@ const emailWorker = new Worker("emailQueue", async (job) => {
         if (ticketId) {
             await prisma.supportTicket.update({
                 where: { id: ticketId },
-                data: { 
+                data: {
                     notificationError: `Attempt failed: ${error.message}`
                 }
             });
@@ -78,14 +78,14 @@ const notificationWorker = new Worker("notificationQueue", async (job) => {
 emailWorker.on("completed", (job) => console.info(`[Worker] Email Job ${job.id} completed`));
 emailWorker.on("failed", async (job, err) => {
     console.error(`[Worker] Email Job ${job.id} failed:`, err.message);
-    
+
     // If all retries exhausted, mark as definitively failed
     if (job.attemptsMade >= (job.opts.attempts || 1)) {
         const { ticketId } = job.data;
         if (ticketId) {
             await prisma.supportTicket.update({
                 where: { id: ticketId },
-                data: { 
+                data: {
                     notificationError: `Final failure after ${job.attemptsMade} attempts: ${err.message}`
                 }
             });

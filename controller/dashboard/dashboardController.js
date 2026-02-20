@@ -22,12 +22,16 @@ export const getStats = async (req, res) => {
         const y = parseInt(year) || now.getFullYear();
 
         const events = await dashboardService.getCalendarEvents(userId, role, m, y);
+        const transactions = await dashboardService.getRecentTransactions(userId, role);
+        const bookings = await dashboardService.getRecentBookings(userId, role);
 
         res.status(200).json({
             success: true,
             data: {
                 stats,
-                events
+                events,
+                transactions,
+                bookings
             }
         });
     } catch (error) {

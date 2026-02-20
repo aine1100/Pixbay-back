@@ -58,15 +58,14 @@ export const getCreatorStats = async (userId) => {
         }
     });
 
-    // 2. Income (Payouts completed)
-    const incomeAggregate = await prisma.transaction.aggregate({
+    // 2. Income (Sum of completed bookings value)
+    const incomeAggregate = await prisma.booking.aggregate({
         where: {
             creatorId: creator.id,
-            type: "PAYOUT",
             status: "COMPLETED"
         },
         _sum: {
-            amount: true
+            totalPrice: true
         }
     });
 
@@ -83,7 +82,7 @@ export const getCreatorStats = async (userId) => {
 
     return {
         totalProjects,
-        income: incomeAggregate._sum.amount || 0,
+        income: incomeAggregate._sum.totalPrice || 0,
         averageRating,
         completedOrders
     };
@@ -165,4 +164,44 @@ export const getRecentTransactions = async (userId, role, limit = 5) => {
     });
 
     return transactions;
+};
+
+/**
+ * Get recent bookings for a user
+ */
+export const getRecentBookings = async (userId, role, limit = 5) => {
+    const whereClause = {};
+    if (role === "CREATOR") {
+        whereClause.creator = { userId };
+    } else {
+        whereClause.clientId = userId;
+    }
+
+    const bookings = await prisma.booking.findMany({
+        where: whereClause,
+        orderBy: { createdAt: "desc" },
+        take: limit,
+        include: {
+            client: {
+                select: {
+                    firstName: true,
+                    lastName: true,
+                    profilePicture: true
+                }
+            },
+            creator: {
+                include: {
+                    user: {
+                        select: {
+                            firstName: true,
+                            lastName: true,
+                            profilePicture: true
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    return bookings;
 };
