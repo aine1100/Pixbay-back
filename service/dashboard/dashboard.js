@@ -33,7 +33,7 @@ export const getClientStats = async (userId) => {
 
     return {
         totalBookings,
-        totalSpent: spentAggregate._sum.amount || 0,
+        totalSpent: Number(spentAggregate._sum.amount) || 0,
         totalMessages
     };
 };
@@ -58,14 +58,15 @@ export const getCreatorStats = async (userId) => {
         }
     });
 
-    // 2. Income (Sum of completed bookings value)
-    const incomeAggregate = await prisma.booking.aggregate({
+    // 2. Income (Sum of completed transactions)
+    const incomeAggregate = await prisma.transaction.aggregate({
         where: {
             creatorId: creator.id,
+            type: "PAYMENT",
             status: "COMPLETED"
         },
         _sum: {
-            totalPrice: true
+            amount: true
         }
     });
 
@@ -82,7 +83,7 @@ export const getCreatorStats = async (userId) => {
 
     return {
         totalProjects,
-        income: incomeAggregate._sum.totalPrice || 0,
+        income: Number(incomeAggregate._sum.amount) || 0,
         averageRating,
         completedOrders
     };

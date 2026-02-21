@@ -189,3 +189,45 @@ export const getReviews = async (req, res) => {
         });
     }
 };
+/**
+ * Controller to update a portfolio item
+ */
+export const updatePortfolioItem = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { id } = req.params;
+        const result = await creatorService.updatePortfolioItem(userId, id, req.body);
+
+        res.status(200).json({
+            success: true,
+            message: result.message,
+            data: result.item
+        });
+    } catch (error) {
+        res.status(400).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+
+/**
+ * Controller to delete a portfolio item
+ */
+export const deletePortfolioItem = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { id } = req.params;
+        const result = await creatorService.deletePortfolioItem(userId, id);
+
+        res.status(200).json({
+            success: true,
+            message: result.message
+        });
+    } catch (error) {
+        res.status(400).json({
+            success: false,
+            message: error.message
+        });
+    }
+};

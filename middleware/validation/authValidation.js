@@ -23,7 +23,7 @@ const registerSchema = Joi.object({
     password: Joi.string().min(6).required(),
     firstName: Joi.string().required(),
     lastName: Joi.string().required(),
-    role: Joi.string().valid("CLIENT", "CREATOR").optional()
+    role: Joi.string().valid("CLIENT", "CREATOR","ADMIN").optional()
 });
 
 const loginSchema = Joi.object({

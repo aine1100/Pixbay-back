@@ -164,6 +164,8 @@ model User {
   lastLoginAt    DateTime?
   phoneNumber    String?
   fcmToken       String?   // For push notifications
+  socialProvider String?   // e.g., "GOOGLE"
+  socialId       String?   @unique
 
   // Relations
   creatorProfile  Creator?

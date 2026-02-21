@@ -3,6 +3,9 @@ import {
     activateIdentity,
     uploadPortfolio,
     updateEquipment,
+    updateProfile,
+    updatePortfolioItem,
+    deletePortfolioItem,
     getReviews
 } from "../../controller/creator/creatorController.js";
 import {
@@ -212,6 +215,9 @@ router.post("/activate/step3", updateEquipment);
  *       200:
  *         description: Profile updated
  */
+// Update profile (Bio, Business Name, etc.)
+router.patch("/profile", updateProfile);
+
 /**
  * @swagger
  * /creators/reviews:
@@ -224,6 +230,10 @@ router.post("/activate/step3", updateEquipment);
  *       200:
  *         description: List of reviews
  */
+// Portfolio management (Update/Delete)
+router.patch("/portfolio/:id", updatePortfolioItem);
+router.delete("/portfolio/:id", deletePortfolioItem);
+
 router.get("/reviews", getReviews);
 
 export default router;

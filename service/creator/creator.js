@@ -183,3 +183,58 @@ export const getCreatorReviews = async (userId) => {
 
     return reviews;
 };
+/**
+ * Update a specific portfolio item's metadata
+ */
+export const updatePortfolioItem = async (userId, itemId, data) => {
+    const creator = await prisma.creator.findUnique({
+        where: { userId }
+    });
+
+    if (!creator) throw new Error("Creator not found");
+
+    const item = await prisma.portfolioMedia.findUnique({
+        where: { id: itemId }
+    });
+
+    if (!item || item.creatorId !== creator.id) {
+        throw new Error("Portfolio item not found or unauthorized");
+    }
+
+    const updatedItem = await prisma.portfolioMedia.update({
+        where: { id: itemId },
+        data: {
+            metadata: {
+                ...(item.metadata || {}),
+                ...data
+            }
+        }
+    });
+
+    return { message: "Item updated successfully", item: updatedItem };
+};
+
+/**
+ * Delete a specific portfolio item
+ */
+export const deletePortfolioItem = async (userId, itemId) => {
+    const creator = await prisma.creator.findUnique({
+        where: { userId }
+    });
+
+    if (!creator) throw new Error("Creator not found");
+
+    const item = await prisma.portfolioMedia.findUnique({
+        where: { id: itemId }
+    });
+
+    if (!item || item.creatorId !== creator.id) {
+        throw new Error("Portfolio item not found or unauthorized");
+    }
+
+    await prisma.portfolioMedia.delete({
+        where: { id: itemId }
+    });
+
+    return { message: "Item deleted successfully" };
+};
