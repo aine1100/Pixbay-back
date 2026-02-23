@@ -36,9 +36,7 @@ export const submitTicket = async (req, res) => {
  */
 export const listTickets = async (req, res) => {
     try {
-        const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 10;
-        const result = await supportService.getAllTickets(page, limit);
+        const result = await supportService.getAllTickets(req.query);
         res.status(200).json({
             success: true,
             ...result

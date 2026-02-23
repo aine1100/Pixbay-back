@@ -72,10 +72,26 @@ export const createTicket = async (ticketData) => {
 /**
  * Get all tickets (Admin only)
  */
-export const getAllTickets = async (page = 1, limit = 10) => {
+export const getAllTickets = async (filters = {}) => {
+    const page = parseInt(filters.page) || 1;
+    const limit = parseInt(filters.limit) || 10;
     const skip = (page - 1) * limit;
+    const { status, search } = filters;
+
+    const where = {
+        ...(status && { status }),
+        ...(search && {
+            OR: [
+                { subject: { contains: search, mode: "insensitive" } },
+                { message: { contains: search, mode: "insensitive" } },
+                { email: { contains: search, mode: "insensitive" } }
+            ]
+        })
+    };
+
     const [tickets, total] = await Promise.all([
         prisma.supportTicket.findMany({
+            where,
             skip,
             take: limit,
             orderBy: { createdAt: "desc" },
@@ -89,7 +105,7 @@ export const getAllTickets = async (page = 1, limit = 10) => {
                 }
             }
         }),
-        prisma.supportTicket.count()
+        prisma.supportTicket.count({ where })
     ]);
 
     return { tickets, total, page, limit };

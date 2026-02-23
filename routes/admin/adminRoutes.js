@@ -4,7 +4,16 @@ import {
     getCreators, 
     approveCreator,
     resolveDispute,
-    getSummary
+    getSummary,
+    updateUser,
+    listDisputes,
+    listTransactions,
+    listSupportTickets,
+    updateSupportTicket,
+    listJobs,
+    updateJobStatus,
+    listCategories,
+    exportCsv
 } from "../../controller/admin/adminController.js";
 import { protect, restrictTo } from "../../middleware/auth/authMiddleware.js";
 
@@ -82,6 +91,7 @@ router.use(restrictTo("ADMIN"));
  *                       lastLoginAt: { type: string, format: date-time }
  */
 router.get("/users", getAllUsers);
+router.patch("/users/:userId", updateUser);
 
 /**
  * @swagger
@@ -167,6 +177,17 @@ router.patch("/creators/:creatorId/verify", approveCreator);
 
 /**
  * @swagger
+ * /admin/disputes:
+ *   get:
+ *     summary: List disputes (Admins only)
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.get("/disputes", listDisputes);
+
+/**
+ * @swagger
  * /admin/disputes/{disputeId}/resolve:
  *   patch:
  *     summary: Resolve a dispute (Admins only)
@@ -200,6 +221,83 @@ router.patch("/creators/:creatorId/verify", approveCreator);
  *         description: Dispute resolved successfully
  */
 router.patch("/disputes/:disputeId/resolve", resolveDispute);
+
+/**
+ * @swagger
+ * /admin/transactions:
+ *   get:
+ *     summary: List transactions (Admins only)
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.get("/transactions", listTransactions);
+
+/**
+ * @swagger
+ * /admin/support:
+ *   get:
+ *     summary: List support tickets (Admins only)
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.get("/support", listSupportTickets);
+
+/**
+ * @swagger
+ * /admin/support/{ticketId}:
+ *   patch:
+ *     summary: Update support ticket status (Admins only)
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.patch("/support/:ticketId", updateSupportTicket);
+
+/**
+ * @swagger
+ * /admin/categories:
+ *   get:
+ *     summary: List categories (Admins only)
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.get("/categories", listCategories);
+
+/**
+ * @swagger
+ * /admin/jobs:
+ *   get:
+ *     summary: List jobs (Admins only)
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.get("/jobs", listJobs);
+
+/**
+ * @swagger
+ * /admin/jobs/{jobId}:
+ *   patch:
+ *     summary: Update job status (Admins only)
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.patch("/jobs/:jobId", updateJobStatus);
+
+/**
+ * @swagger
+ * /admin/exports/{resource}:
+ *   get:
+ *     summary: Export CSV (Admins only)
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.get("/exports/:resource", exportCsv);
 
 /**
  * @swagger
