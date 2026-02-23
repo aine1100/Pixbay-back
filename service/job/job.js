@@ -148,9 +148,23 @@ export const updateJob = async (id, clientId, updateData) => {
  * Delete a job request
  */
 export const deleteJob = async (id, clientId) => {
-    const job = await prisma.job.findUnique({ where: { id } });
+    const job = await prisma.job.findUnique({ 
+        where: { id },
+        include: { bids: true }
+    });
+    
     if (!job) throw new Error("Job not found");
     if (job.clientId !== clientId) throw new Error("You can only delete your own jobs");
+
+    // Prevent deletion if the job is already filled or has accepted bids
+    if (job.status !== "ACTIVE" && job.status !== "PENDING") {
+        throw new Error(`Cannot delete a job that is ${job.status}`);
+    }
+
+    const hasAcceptedBid = job.bids.some(bid => bid.status === "ACCEPTED");
+    if (hasAcceptedBid) {
+        throw new Error("Cannot delete a job with an accepted bid. Please cancel the booking instead.");
+    }
 
     return await prisma.job.delete({ where: { id } });
 };

@@ -36,6 +36,7 @@ export const getPublicProfile = async (creatorIdOrUserId) => {
         include: {
             user: {
                 select: {
+                    id: true,
                     firstName: true,
                     lastName: true,
                     email: true,
